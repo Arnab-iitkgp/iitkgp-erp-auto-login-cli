@@ -1,0 +1,30 @@
+{
+  "name": "erp-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "bin": {
+    "erp": "./dist/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^25.6.0",
+    "commander": "^14.0.3",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
