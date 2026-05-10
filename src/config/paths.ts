@@ -1,2 +1,2 @@
 import envPaths from "env-paths";
-export const path = envPaths("erp-cli");
+export const paths = envPaths("erp-cli");

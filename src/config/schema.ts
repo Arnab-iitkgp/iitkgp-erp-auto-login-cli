@@ -1,10 +1,7 @@
 import { z } from "zod";
 
 export const AppConfigSchema = z.object({
-  erpEmail: z.string().email(),
-
-  gmailEmail: z.string().email(),
-
+  erpRoll: z.string(),
   erpUrl: z.string().url(),
 
   securityQuestions: z.array(
