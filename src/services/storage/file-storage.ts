@@ -8,15 +8,16 @@ import {AppConfigSchema} from "../../config/schema.js";
 
 import { ensureDir } from "../../utils/fs.js";
 import { ConfigNotFoundError, InvalidConfigError } from "../../errors/config.js";
+import type { ConfigStorageService } from "./types";
 
-export class FileStorageService {
+export class FileStorageService implements ConfigStorageService {
     private configPath: string;
 
     constructor() {
     this.configPath = path.join(paths.config, "config.json");
   }
 
-  async saveConfig(config: AppConfig) {
+  async saveConfig(config: AppConfig):Promise<void> {
     await ensureDir(paths.config);
    const json = JSON.stringify(config, null, 2);
    await writeFileAtomic(this.configPath, json);
