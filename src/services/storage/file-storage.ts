@@ -2,12 +2,9 @@ import type { AppConfig } from "../../config/schema";
 import fs from "fs/promises";
 import path from "path";
 import writeFileAtomic from 'write-file-atomic';
-
-import { paths } from "../../config/paths.js";
-import {
-  AppConfigSchema,
-} from "../../config/schema.js";
 import {ZodError} from 'zod'
+import { paths } from "../../config/paths.js";
+import {AppConfigSchema} from "../../config/schema.js";
 
 import { ensureDir } from "../../utils/fs.js";
 import { ConfigNotFoundError, InvalidConfigError } from "../../errors/config.js";
@@ -43,7 +40,7 @@ export class FileStorageService {
       if (error instanceof SyntaxError) {
       throw new InvalidConfigError("Config file contains invalid JSON.");
     }
-      throw error;  // ghost bugs
+      throw error;  // rethrow unexpected errors
 
     }
   

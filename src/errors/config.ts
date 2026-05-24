@@ -1,4 +1,3 @@
-import { sourceMapsEnabled } from "node:process";
 import { AppError } from "./base.js";
 
 export class ConfigNotFoundError extends AppError{
@@ -8,7 +7,7 @@ export class ConfigNotFoundError extends AppError{
 }
 
 export class InvalidConfigError extends AppError{
-    constructor (message = "Configuration file is not found"){
+    constructor (message = "Configuration file is invalid"){
         super(message);
     }
 }
