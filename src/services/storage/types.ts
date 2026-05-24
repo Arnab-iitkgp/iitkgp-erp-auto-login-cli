@@ -12,4 +12,5 @@ export interface StorageService {
   setSecret(key: SecretKey, value: string): Promise<void>;
 
   clearAll(): Promise<void>;
+  
 }

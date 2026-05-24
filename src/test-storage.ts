@@ -1,18 +1,31 @@
 import { FileStorageService } from "./services/storage/file-storage.js";
 
+import {
+  ConfigNotFoundError,
+  InvalidConfigError,
+} from "./errors/config.js";
+
 const storage = new FileStorageService();
 
-await storage.saveConfig({
-  erpRoll: "23CHXXXXX",
-  erpUrl: "https://erp.iitkgp.ac.in",
-  securityQuestions: [
-    {
-      id: "pet",
-      question: "Pet name?",
-    },
-  ],
-});
+try {
+  const config = await storage.loadConfig();
 
-const config = await storage.loadConfig();
+  console.log("Loaded config:");
+  console.log(config);
 
-console.log(config);
+} catch (error) {
+
+  if (error instanceof ConfigNotFoundError) {
+    console.log("No config found.");
+  }
+
+  else if (error instanceof InvalidConfigError) {
+    console.log("Invalid config:");
+    console.log(error.message);
+  }
+
+  else {
+    console.log("Unexpected error:");
+    console.log(error);
+  }
+}

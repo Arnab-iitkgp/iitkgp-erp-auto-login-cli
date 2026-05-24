@@ -7,8 +7,10 @@ import { paths } from "../../config/paths.js";
 import {
   AppConfigSchema,
 } from "../../config/schema.js";
+import {ZodError} from 'zod'
 
 import { ensureDir } from "../../utils/fs.js";
+import { ConfigNotFoundError, InvalidConfigError } from "../../errors/config.js";
 
 export class FileStorageService {
     private configPath: string;
@@ -20,13 +22,32 @@ export class FileStorageService {
   async saveConfig(config: AppConfig) {
     await ensureDir(paths.config);
    const json = JSON.stringify(config, null, 2);
-  await writeFileAtomic(this.configPath, json);
+   await writeFileAtomic(this.configPath, json);
   }
 
   async loadConfig(): Promise<AppConfig> {
-  const raw = await fs.readFile(this.configPath, "utf-8");
-  const parsed = JSON.parse(raw);
-  return AppConfigSchema.parse(parsed);
+    try {
+      const raw = await fs.readFile(this.configPath, "utf-8");
+      const parsed = JSON.parse(raw);
+      return AppConfigSchema.parse(parsed);
+
+    } catch (error) {
+      
+      if((error as NodeJS.ErrnoException).code === "ENOENT"){ // file missing 
+        throw new ConfigNotFoundError();
+      }
+      if(error instanceof ZodError){
+        throw new InvalidConfigError(error.message);
+      }
+
+      if (error instanceof SyntaxError) {
+      throw new InvalidConfigError("Config file contains invalid JSON.");
+    }
+      throw error;  // ghost bugs
+
+    }
+  
+
 }
 
   async hasConfig(): Promise<boolean> {

@@ -1,0 +1,14 @@
+import { sourceMapsEnabled } from "node:process";
+import { AppError } from "./base.js";
+
+export class ConfigNotFoundError extends AppError{
+    constructor(){
+        super("Configuration file not found");
+    }
+}
+
+export class InvalidConfigError extends AppError{
+    constructor (message = "Configuration file is not found"){
+        super(message);
+    }
+}
