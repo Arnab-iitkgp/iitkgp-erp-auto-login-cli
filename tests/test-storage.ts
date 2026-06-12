@@ -1,9 +1,9 @@
-import { FileStorageService } from "./services/storage/file-storage.js";
+import { FileStorageService } from "../src/services/storage/file-storage.js";
 
 import {
   ConfigNotFoundError,
   InvalidConfigError,
-} from "./errors/config.js";
+} from "../src/errors/config.js";
 
 const storage = new FileStorageService();
 

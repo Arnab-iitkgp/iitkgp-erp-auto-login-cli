@@ -1,4 +1,4 @@
-import type { AppConfig } from "../../config/schema";   
+import type { AppConfig } from "../../config/schema.js";   
 import fs from "fs/promises";
 import path from "path";
 import writeFileAtomic from 'write-file-atomic';
@@ -8,7 +8,7 @@ import {AppConfigSchema} from "../../config/schema.js";
 
 import { ensureDir } from "../../utils/fs.js";
 import { ConfigNotFoundError, InvalidConfigError } from "../../errors/config.js";
-import type { ConfigStorageService } from "./types";
+import type { ConfigStorageService } from "./types.js";
 
 export class FileStorageService implements ConfigStorageService {
     private configPath: string;

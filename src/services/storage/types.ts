@@ -1,4 +1,4 @@
-import type { AppConfig } from "../../config/schema";
+import type { AppConfig } from "../../config/schema.js";
 
 export interface ConfigStorageService {
   hasConfig(): Promise<boolean>;

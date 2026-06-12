@@ -3,7 +3,7 @@ import { z } from "zod";
 export const AppConfigSchema = z.object({
   erpRoll: z.string(),
   erpUrl: z.string().url(),
-
+  gmailEmail:z.string(),
   securityQuestions: z.array(
     z.object({
       id: z.string(),
