@@ -159,7 +159,7 @@ export class ErpClient{
 
          if (authResponse.status < 300 || authResponse.status >= 400) {
             const text = await authResponse.text();
-            throw new Error(`Auth failed with status ${authResponse.status}: ${text}`);
+            throw new Error(`Auth failed (status ${authResponse.status}): ${text.substring(0, 200)}`);
         }
 
         const successLocation = authResponse.headers.get("Location");

@@ -3,7 +3,7 @@ import prompts from "prompts";
 
 //for local testing
 const client = new ErpClient("https://erp.iitkgp.ac.in");
-const roll = "23ch10011";
+const roll = "Your roll no";
 const password = "*";
 
 const answers: Record<string, string> = {
