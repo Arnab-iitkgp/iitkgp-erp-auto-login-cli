@@ -3,6 +3,8 @@ import { ErpSession } from "./session.js";
 export class ErpClient{
     private session : ErpSession;
     private baseUrl:string;
+    private sessionToken: string = "";
+    private requestedUrl: string = "";
     
     constructor(baseUrl:string){
         this.session = new ErpSession();
@@ -74,10 +76,15 @@ export class ErpClient{
         if(!sessionToken){
             throw new Error( "Failed to extract sessionToken from login page");
         }
-            await this.request(redirectUrl.toString());
+
+        // Store on instance so other methods (requestOtp, authenticate) can use them
+        this.sessionToken = sessionToken;
+        this.requestedUrl = requestedUrl || `${this.baseUrl}/IIT_ERP3/menulist.htm`;
+
+        await this.request(redirectUrl.toString());
         return {
-            sessionToken,
-            requestedUrl:requestedUrl || `${this.baseUrl}/IIT_ERP3/menulist.htm`
+            sessionToken: this.sessionToken,
+            requestedUrl: this.requestedUrl,
         };
     }
 
@@ -101,8 +108,84 @@ export class ErpClient{
         return question.trim();
     }
 
+    async requestOtp(rollNumber: string, password: string, answer: string):Promise<string>{
+        // Note: ERP has a typo-- "getEmilOTP" not "getEmailOTP" // #CHECK
+        const url = `${this.baseUrl}/SSOAdministration/getEmilOTP.htm`;
+        const body = new URLSearchParams({
+            user_id: rollNumber,
+            password: password,
+            answer: answer,
+            typeee: "SI",
+            email_otp: "",
+            sessionToken: this.sessionToken,
+            requestedUrl: this.requestedUrl,
+        });
+
+        const response = await this.request(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: body.toString(),
+        });
+
+        const responseText = await response.text();
+        return responseText.trim();
+    }
     // expose session for debugging , lets inspect cookies from outside
 
+    async authenticate(
+        rollNumber:string,
+        password:string,
+        answer:string,
+        otp:string
+    ):Promise<string>{
+        const url = `${this.baseUrl}/SSOAdministration/auth.htm`
+        const body =  new URLSearchParams({
+            user_id: rollNumber,
+            password: password,
+            answer: answer,
+            typeee: "SI",
+            email_otp: otp,
+            sessionToken: this.sessionToken,
+            requestedUrl: this.requestedUrl,
+        });
+
+        const authResponse = await this.request(url, {
+            method: "POST",
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: body.toString(),
+        })
+
+         if (authResponse.status < 300 || authResponse.status >= 400) {
+            const text = await authResponse.text();
+            throw new Error(`Auth failed with status ${authResponse.status}: ${text}`);
+        }
+
+        const successLocation = authResponse.headers.get("Location");
+
+        if(!successLocation){
+            throw new Error("No redirect after auth.htm");
+        }
+
+        const successUrl = new URL(successLocation, url).toString();
+        const successResponse = await this.request(successUrl);
+
+        const ssoToken = this.session.get("ssoToken");
+
+        if(!ssoToken){
+            //fallback: try extract from the location header url
+            const finalLocation = successResponse.headers.get("Location");
+            if(finalLocation){
+                const finalUrl = new URL(finalLocation, successUrl);
+                const tokenFromUrl = finalUrl.searchParams.get("ssotoken");
+
+                if(tokenFromUrl)return tokenFromUrl;
+            }
+            throw new Error("Failed to extract ssoToken from auth response")
+        }
+        return ssoToken;
+    }
     getSession() : ErpSession{
         return this.session;
     }
