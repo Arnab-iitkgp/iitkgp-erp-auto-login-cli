@@ -1,4 +1,4 @@
-import { KeychainService } from "./services/storage/keychain.js";
+import { KeychainService } from "../src/services/storage/keychain.js";
 
 const keychain = new KeychainService();
 

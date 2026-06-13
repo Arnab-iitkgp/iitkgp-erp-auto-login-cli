@@ -1,5 +1,5 @@
 import { Entry } from "@napi-rs/keyring";
-import type { SecretStorageService } from "./types";
+import type { SecretStorageService } from "./types.js";
 
 const SERVICE_NAME = "erp-cli";
 

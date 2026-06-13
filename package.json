@@ -1,8 +1,8 @@
 {
   "name": "erp-cli",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "CLI tool for IIT KGP ERP auto-login",
+  "main": "dist/index.js",
   "type": "module",
   "directories": {
     "doc": "docs",
@@ -23,12 +23,15 @@
     "@napi-rs/keyring": "^1.3.0",
     "commander": "^14.0.3",
     "env-paths": "^4.0.0",
+    "imapflow": "^1.4.0",
+    "prompts": "^2.4.2",
     "tsx": "^4.21.0",
     "write-file-atomic": "^7.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
+    "@types/prompts": "^2.4.9",
     "@types/write-file-atomic": "^4.0.3",
     "typescript": "^6.0.3"
   }
