@@ -1,6 +1,6 @@
 {
   "name": "kgp-erp-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tool for IIT KGP ERP auto-login",
   "main": "dist/index.js",
   "type": "module",
@@ -18,7 +18,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx src/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "postinstall": "node dist/postinstall.js"
   },
   "keywords": [
     "iit-kgp",

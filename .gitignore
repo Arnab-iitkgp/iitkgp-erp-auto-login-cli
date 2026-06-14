@@ -18,7 +18,7 @@ lib/
 .env
 .env.local
 .env.*.local
-
+.npmrc
 # Logs and coverage
 logs/
 *.log

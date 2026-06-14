@@ -48,6 +48,7 @@ _(Or build locally and link using `npm link`)_
 ---
 
 ## Getting Started
+### 0. Try run `erp`
 
 ### 1. Setup Configuration
 Run the setup command to configure your Roll Number, Gmail address, ERP Password, Gmail App Password, and answers to your security questions.
