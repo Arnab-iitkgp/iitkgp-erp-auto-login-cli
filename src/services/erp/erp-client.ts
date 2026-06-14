@@ -13,7 +13,7 @@ export class ErpClient{
 
     //every req goes thru this, 
     //-- attaches stored cookies, capture new cookies from the response
-    //-- does not follow redirect (manual handling)
+    //-- does not follow redirect (then manual handling)
 
     private async request(
         url:string,
@@ -132,7 +132,28 @@ export class ErpClient{
         const responseText = await response.text();
         return responseText.trim();
     }
-    // expose session for debugging , lets inspect cookies from outside
+
+    async fetchAllSecurityQuestions(
+        rollNumber: string,
+        maxAttempts: number = 15
+    ): Promise<string[]> {
+        const found = new Set<string>();
+
+        for (let i = 0; i < maxAttempts; i++) {
+            try {
+                const q = await this.getSecurityQuestion(rollNumber);
+                if (q && q !== 'FALSE') {
+                    found.add(q.trim());
+                }
+                
+                if (found.size >= 3) break;
+            } catch {
+                //safe ignore
+            }
+        }
+
+        return Array.from(found);
+    }
 
     async authenticate(
         rollNumber:string,
@@ -186,6 +207,7 @@ export class ErpClient{
         }
         return ssoToken;
     }
+
     getSession() : ErpSession{
         return this.session;
     }

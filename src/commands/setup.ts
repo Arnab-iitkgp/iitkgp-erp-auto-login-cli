@@ -1,5 +1,7 @@
 import prompts from "prompts";
 
+import { ErpClient } from "../services/erp/erp-client.js";
+import { ImapOtpReader } from "../services/imap/otp-reader.js";
 import { FileStorageService } from "../services/storage/file-storage.js";
 import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
@@ -42,31 +44,91 @@ export const setupCommand = async function () {
     }
   }
 
-  // --- Collect credentials ---
-  // validate: returns true if valid, or an error message string if invalid
-  const response = await prompts(
+  // Collect credentials
+  const rollRes = await prompts(
+    {
+      type: "text",
+      name: "erpRoll",
+      message: "ERP Roll Number:",
+      validate: (v: string) =>
+        v.trim().length > 0 ? true : "Roll number cannot be empty",
+    },
+    { onCancel }
+  );
+  
+  const erpRoll = rollRes.erpRoll.trim();
+
+  //fetch seq questiona
+  console.log(`\nFetching your security questions from ERP...`);
+  const erpClient = new ErpClient("https://erp.iitkgp.ac.in");
+  const fetchedQuestions = await erpClient.fetchAllSecurityQuestions(erpRoll);
+  
+  if (fetchedQuestions.length === 0) {
+    console.error("could not fetch security questions. Is the roll number correct?");
+    process.exit(1);
+  }
+
+  console.log(`Found ${fetchedQuestions.length} questions!\n`);
+
+  // ERP password
+  const { erpPassword } = await prompts(
+    {
+      type: "password",
+      name: "erpPassword",
+      message: "ERP Password:",
+      validate: (v: string) =>
+        v.length > 0 ? true : "Password cannot be empty",
+    },
+    { onCancel }
+  );
+
+  // Security question answers
+  const securityQuestions: Record<string, string> = {};
+  
+  console.log("\nPlease provide answers to your security questions:");
+  
+  for (let i = 0; i < fetchedQuestions.length; i++) {
+    const q = fetchedQuestions[i] as string;
+    const qa = await prompts(
+      {
+        type: "password",
+        name: "answer",
+        message: `Q: ${q}\nAnswer:`,
+        validate: (v: string) =>
+          v.trim().length > 0 ? true : "Answer cannot be empty",
+      },
+      { onCancel }
+    );
+
+    const keychainKey = `${SECRET_KEYS.SECURITY_ANSWER_PREFIX}-${i}`;
+    const normalizedQuestion = q.toLowerCase().trim();
+    
+    securityQuestions[normalizedQuestion] = keychainKey;
+    await keychain.setSecret(keychainKey, qa.answer);
+  }
+
+  // Gmail setup with guidance
+  console.log("\n──────────────────────────────────────────────");
+  console.log("  Gmail Setup (for auto-reading OTP emails)");
+  console.log("──────────────────────────────────────────────");
+  console.log("\n  We need a Gmail App Password to read your OTP emails.");
+  console.log("  This is NOT your regular Gmail password.\n");
+  console.log("  How to get one:");
+  console.log("  1. Go to https://myaccount.google.com/apppasswords");
+  console.log("  2. Select 'Other' → name it 'erp-cli'");
+  console.log("  3. Copy the 16-character password\n");
+  console.log("  Your App Password is stored securely in your OS keychain");
+  console.log("  (Windows Credential Manager / macOS Keychain).");
+  console.log("  It never leaves your machine.\n");
+
+  const gmailResponse = await prompts(
     [
       {
         type: "text",
-        name: "erpRoll",
-        message: "ERP Roll Number:",
-        validate: (v: string) =>
-          v.trim().length > 0 ? true : "Roll number cannot be empty",
-      },
-      {
-        type: "password",
-        name: "erpPassword",
-        message: "ERP Password:",
-        validate: (v: string) =>
-          v.length > 0 ? true : "Password cannot be empty",
-      },
-      {
-        type: "text",
         name: "gmailEmail",
-        message: "Gmail email:",
+        message: "Gmail email (registered with ERP):",
         validate: (v: string) => {
           if (v.trim().length === 0) return "Email cannot be empty";
-          // Basic email format check — Zod will do strict validation on load
           if (!v.includes("@")) return "Enter a valid email address";
           return true;
         },
@@ -74,7 +136,7 @@ export const setupCommand = async function () {
       {
         type: "password",
         name: "gmailAppPassword",
-        message: "Gmail App Password:",
+        message: "Gmail App Password (16 chars):",
         validate: (v: string) =>
           v.length > 0 ? true : "App password cannot be empty",
       },
@@ -82,73 +144,40 @@ export const setupCommand = async function () {
     { onCancel }
   );
 
-  // --- Collect security questions ---
-  // Dynamic count — loop until user says "no more"
-  const securityQuestions: Record<string, string> = {};
-  let questionIndex = 0;
+  // Verify Gmail credentials before saving
+  console.log("\n  Verifying Gmail connection...");
+  const testReader = new ImapOtpReader(
+    gmailResponse.gmailEmail.trim(),
+    gmailResponse.gmailAppPassword
+  );
 
-  console.log("\nEnter your ERP security questions and answers.");
-  console.log("Type the question EXACTLY as it appears on ERP.\n");
-
-  while (true) {
-    const qa = await prompts(
-      [
-        {
-          type: "text",
-          name: "question",
-          message: `Security question ${questionIndex + 1}:`,
-          validate: (v: string) =>
-            v.trim().length > 0 ? true : "Question cannot be empty",
-        },
-        {
-          type: "password",
-          name: "answer",
-          message: `Answer:`,
-          validate: (v: string) =>
-            v.trim().length > 0 ? true : "Answer cannot be empty",
-        },
-      ],
-      { onCancel }
-    );
-
-    // Store: question text → keychain key in config
-    // Store: actual answer → in keychain under that key
-    const keychainKey = `${SECRET_KEYS.SECURITY_ANSWER_PREFIX}-${questionIndex}`;
-    const normalizedQuestion = qa.question.trim().toLowerCase();
-    securityQuestions[normalizedQuestion] = keychainKey;
-    await keychain.setSecret(keychainKey, qa.answer);
-
-    questionIndex++;
-
-    const { addMore } = await prompts(
-      {
-        type: "confirm",
-        name: "addMore",
-        message: "Add another security question?",
-        initial: questionIndex < 3, // Default "yes" for first 3
-      },
-      { onCancel }
-    );
-
-    if (!addMore) break;
+  try {
+    await testReader.connect();
+    await testReader.disconnect();
+    console.log("  Gmail connection verified!\n");
+  } catch {
+    console.error("  Failed to connect to Gmail.");
+    console.error("  Check your email and app password and try again.");
+    process.exit(1);
   }
 
-  // --- Save config (non-secret data) ---
+  // Save config
   await fileStorage.saveConfig({
-    erpRoll: response.erpRoll.trim(),
-    gmailEmail: response.gmailEmail.trim(),
+    erpRoll,
+    gmailEmail: gmailResponse.gmailEmail.trim(),
     erpUrl: "https://erp.iitkgp.ac.in",
     securityQuestions,
   });
 
-  // --- Save secrets to keychain ---
-  await keychain.setSecret(SECRET_KEYS.ERP_PASSWORD, response.erpPassword);
+  //Save secrets to keychain
+  await keychain.setSecret(SECRET_KEYS.ERP_PASSWORD, erpPassword);
   await keychain.setSecret(
     SECRET_KEYS.GMAIL_APP_PASSWORD,
-    response.gmailAppPassword
+    gmailResponse.gmailAppPassword
   );
 
   console.log(
-    `\n✓ Setup complete. ${questionIndex} security question(s) saved.`
+    `Setup complete! ${fetchedQuestions.length} security question(s) saved.`
   );
+  console.log("Run `erp login` to auto-login to ERP.");
 };
