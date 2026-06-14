@@ -18,6 +18,7 @@ program
 program
   .command("login")
   .description("Auto-login to ERP and open browser")
+  .option("--fresh", "Skip cached session, force fresh OTP login")
   .action(loginCommand);
 
 program

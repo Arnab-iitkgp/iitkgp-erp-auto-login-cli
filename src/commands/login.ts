@@ -8,7 +8,7 @@ import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
 import { openBrowser } from "../utils/browser.js";
 
-export const loginCommand = async function () {
+export const loginCommand = async function (options: { fresh?: boolean } = {}) {
   const fileStorage = new FileStorageService();
   const sessionStorage = new FileSessionStorage();
   const keychain = new KeychainService();
@@ -25,24 +25,29 @@ export const loginCommand = async function () {
   const config = await fileStorage.loadConfig();
   spinner.succeed();
 
-  const cached = await sessionStorage.loadSession();
+  // Skip cache if --fresh flag is passed
+  if (!options.fresh) {
+    const cached = await sessionStorage.loadSession();
 
-  if (cached && cached.erpUrl === config.erpUrl) {
-    spinner.text = pc.cyan("Verifying cached session...");
+    if (cached && cached.erpUrl === config.erpUrl) {
+      spinner.text = pc.cyan("Verifying cached session...");
 
-    const isAlive = await ErpClient.sessionAlive(cached.erpUrl, cached.ssoToken);
+      const isAlive = await ErpClient.sessionAlive(cached.erpUrl, cached.ssoToken);
 
-    if (isAlive) {
-      const loginUrl = `${cached.erpUrl}/IIT_ERP3/home.htm?ssoToken=${cached.ssoToken}`;
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      spinner.succeed(pc.green(`Session alive — skipping OTP! ${pc.dim(`(${duration}s)`)}`));
-      console.log(pc.dim("  Opening browser..."));
-      await openBrowser(loginUrl);
-      return;
+      if (isAlive) {
+        const loginUrl = `${cached.erpUrl}/IIT_ERP3/home.htm?ssoToken=${cached.ssoToken}`;
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        spinner.succeed(pc.green(`Session alive — skipping OTP! ${pc.dim(`(${duration}s)`)}`));
+        console.log(pc.dim("  Opening browser..."));
+        await openBrowser(loginUrl);
+        return;
+      }
+
+      // Token is dead — clear and do fresh login
+      spinner.warn(pc.yellow("Cached session expired"));
+      await sessionStorage.clearSession();
     }
-
-    // Token is dead wo clear and fresh login
-    spinner.warn(pc.yellow("Cached session expired"));
+  } else {
     await sessionStorage.clearSession();
   }
 
