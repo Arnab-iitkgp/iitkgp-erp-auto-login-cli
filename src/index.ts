@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import pc from "picocolors";
 import prompts from "prompts";
+import pc from "picocolors";
 import { loginCommand } from "./commands/login.js";
 import { setupCommand } from "./commands/setup.js";
 import { resetCommand } from "./commands/reset.js";
 import { statusCommand } from "./commands/status.js";
+import { banner } from "./utils/banner.js";
 
 const program = new Command();
 
@@ -13,17 +14,6 @@ program
   .name("erp")
   .description("CLI tool for IIT KGP ERP auto-login")
   .version("1.0.0");
-
-const banner = `
- ${pc.cyan("███████╗██████╗ ██████╗       ██████╗██╗     ██╗")}
- ${pc.cyan("██╔════╝██╔══██╗██╔══██╗     ██╔════╝██║     ██║")}
- ${pc.cyan("█████╗  ██████╔╝██████╔╝     ██║     ██║     ██║")}
- ${pc.cyan("██╔══╝  ██╔══██╗██╔═══╝      ██║     ██║     ██║")}
- ${pc.cyan("███████╗██║  ██║██║          ╚██████╗███████╗██║")}
- ${pc.cyan("╚══════╝╚═╝  ╚═╝╚═╝           ╚═════╝╚══════╝╚═╝")}
-`;
-
-program.addHelpText("beforeAll", banner);
 
 program
   .command("login")
@@ -48,7 +38,7 @@ program
 
 async function main() {
   if (process.argv.length === 2) {
-    console.log(banner);
+    console.log(pc.cyan(banner));
     const { action } = await prompts({
       type: "select",
       name: "action",
