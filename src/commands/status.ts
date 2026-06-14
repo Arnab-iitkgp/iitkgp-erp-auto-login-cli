@@ -1,8 +1,9 @@
+import prompts from "prompts";
 import { FileStorageService } from "../services/storage/file-storage.js";
 import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
 
-export const statusCommand = async function () {
+export const statusCommand = async function (options: { reveal?: boolean }) {
   const fileStorage = new FileStorageService();
   const keychain = new KeychainService();
 
@@ -23,18 +24,52 @@ export const statusCommand = async function () {
 
     // Check secrets availability (without revealing them)
     const hasErpPass = !!(await keychain.getSecret(SECRET_KEYS.ERP_PASSWORD));
-    const hasGmailPass = !!(await keychain.getSecret(SECRET_KEYS.GMAIL_APP_PASSWORD));
-
     console.log(`  ERP Password:   ${hasErpPass ? "✓ saved" : "✗ missing"}`);
-    console.log(`  Gmail App Pass: ${hasGmailPass ? "✓ saved" : "✗ missing"}`);
+   
+    const gmailAppPassSecret = await keychain.getSecret(SECRET_KEYS.GMAIL_APP_PASSWORD);
+    const hasGmailPass = !!gmailAppPassSecret;
 
     // Check security questions
     const questions = Object.keys(config.securityQuestions);
     console.log(`\n  Security Questions: ${questions.length}`);
+    
+    let revealAnswers = false;
+    
+    if (options.reveal && hasErpPass) {
+      const storedErpPass = await keychain.getSecret(SECRET_KEYS.ERP_PASSWORD);
+      
+      const { password } = await prompts({
+        type: "password",
+        name: "password",
+        message: "Enter your ERP Password to reveal secrets",
+      });
+      
+      if (password === storedErpPass) {
+        revealAnswers = true;
+        console.log("  (Authentication successful. Revealing secrets...)");
+      } else {
+        console.log("  (Authentication failed. Access denied.)");
+      }
+    } else if (options.reveal) {
+      console.log("  (Cannot reveal: ERP password not set up.)");
+    }
+
+    if (revealAnswers && hasGmailPass) {
+      console.log(`  Gmail App Pass: → "${gmailAppPassSecret}"`);
+    } else {
+      console.log(`  Gmail App Pass: ${hasGmailPass ? "✓ saved" : "✗ missing"}`);
+    }
+
     for (const q of questions) {
       const keychainKey = config.securityQuestions[q]!;
-      const hasAnswer = !!(await keychain.getSecret(keychainKey));
-      console.log(`    • ${q} ${hasAnswer ? "✓" : "✗ answer missing"}`);
+      const answer = await keychain.getSecret(keychainKey);
+      const hasAnswer = !!answer;
+      
+      if (revealAnswers && hasAnswer) {
+        console.log(`    • ${q} → "${answer}"`);
+      } else {
+        console.log(`    • ${q} ${hasAnswer ? "✓" : "✗ answer missing, please do erp setup"}`);
+      }
     }
 
     console.log();

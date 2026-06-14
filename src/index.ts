@@ -30,6 +30,7 @@ program
 program
   .command("status")
   .description("Show current configuration status")
+  .option("--reveal", "Reveal security answers (requires ERP password)")
   .action(statusCommand);
 
 program.parse();
