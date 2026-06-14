@@ -22,3 +22,16 @@ export interface SecretStorageService {
 
   isAvailable(): Promise<boolean>;
 }
+
+// Session data saved after a successful login
+export interface SessionData {
+  ssoToken: string;
+  erpUrl: string;
+  createdAt: number; // Unix timestamp (ms) — for display only, not validation
+}
+
+export interface SessionStorageService {
+  saveSession(data: SessionData): Promise<void>;
+  loadSession(): Promise<SessionData | null>;
+  clearSession(): Promise<void>;
+}
