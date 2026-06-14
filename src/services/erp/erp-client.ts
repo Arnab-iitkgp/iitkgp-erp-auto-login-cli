@@ -212,5 +212,23 @@ export class ErpClient{
         return this.session;
     }
 
+    /**
+     * If expired, ERP 302s to /SSOAdministration/logout.htm.
+     * If alive, ERP 302s to the actual dashboard.
+     **/
+    static async sessionAlive(
+        erpUrl: string,
+        ssoToken: string
+    ): Promise<boolean> {
+        const testUrl = `${erpUrl}/IIT_ERP3/home.htm?ssoToken=${ssoToken}`;
 
+        try {
+            const response = await fetch(testUrl, { redirect: "manual" });
+            const location = response.headers.get("Location") || "";
+            // Dead token -- redirects to logout.htm
+            return !location.includes("logout.htm");
+        } catch {
+            return false;
+        }
+    }
 }

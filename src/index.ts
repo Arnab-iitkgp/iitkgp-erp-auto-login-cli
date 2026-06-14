@@ -39,6 +39,7 @@ program
 async function main() {
   if (process.argv.length === 2) {
     console.log(pc.cyan(banner));
+
     const { action } = await prompts({
       type: "select",
       name: "action",
@@ -48,12 +49,23 @@ async function main() {
         { title: "Check status", value: "status" },
         { title: "Run setup", value: "setup" },
         { title: "Reset credentials", value: "reset" },
+        { title: "See available commands", value: "help" },
         { title: "Exit", value: "exit" },
       ],
     });
 
     if (!action || action === "exit") {
       process.exit(0);
+    }
+
+    if (action === "help") {
+      console.log(`\n${pc.dim("  Commands:")}`);
+      console.log(`    ${pc.bold("erp login")}            Auto-login to ERP & open browser`);
+      console.log(`    ${pc.bold("erp setup")}            Configure credentials & security questions`);
+      console.log(`    ${pc.bold("erp status")}           Show saved config ${pc.dim("(--reveal to see secrets)")}`);
+      console.log(`    ${pc.bold("erp reset")}            Delete all saved credentials`);
+      console.log();
+      return;
     }
 
     if (action === "login") await loginCommand();

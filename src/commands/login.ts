@@ -3,11 +3,14 @@ import ora from "ora";
 import { ErpClient } from "../services/erp/erp-client.js";
 import { ImapOtpReader } from "../services/imap/otp-reader.js";
 import { FileStorageService } from "../services/storage/file-storage.js";
+import { FileSessionStorage } from "../services/storage/session-storage.js";
 import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
+import { openBrowser } from "../utils/browser.js";
 
 export const loginCommand = async function () {
   const fileStorage = new FileStorageService();
+  const sessionStorage = new FileSessionStorage();
   const keychain = new KeychainService();
 
   const startTime = Date.now();
@@ -20,6 +23,32 @@ export const loginCommand = async function () {
   }
 
   const config = await fileStorage.loadConfig();
+  spinner.succeed();
+
+  const cached = await sessionStorage.loadSession();
+
+  if (cached && cached.erpUrl === config.erpUrl) {
+    spinner.text = pc.cyan("Verifying cached session...");
+
+    const isAlive = await ErpClient.sessionAlive(cached.erpUrl, cached.ssoToken);
+
+    if (isAlive) {
+      const loginUrl = `${cached.erpUrl}/IIT_ERP3/home.htm?ssoToken=${cached.ssoToken}`;
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      spinner.succeed(pc.green(`Session alive — skipping OTP! ${pc.dim(`(${duration}s)`)}`));
+      console.log(pc.dim("  Opening browser..."));
+      await openBrowser(loginUrl);
+      return;
+    }
+
+    // Token is dead wo clear and fresh login
+    spinner.warn(pc.yellow("Cached session expired"));
+    await sessionStorage.clearSession();
+  }
+
+  // Full login flow wit otp
+ 
+  const spinner2 = ora("Loading credentials...").start();
 
   // Load secrets from keychain
   const erpPassword = await keychain.getSecret(SECRET_KEYS.ERP_PASSWORD);
@@ -28,7 +57,7 @@ export const loginCommand = async function () {
   );
 
   if (!erpPassword || !gmailAppPassword) {
-    spinner.fail(pc.red("Missing credentials in keychain. Run `erp setup` again."));
+    spinner2.fail(pc.red("Missing credentials in keychain. Run `erp setup` again."));
     process.exit(1);
   }
 
@@ -44,78 +73,67 @@ export const loginCommand = async function () {
   }
 
   if (Object.keys(answers).length === 0) {
-    spinner.fail(pc.red("No security answers found. Run `erp setup` again."));
+    spinner2.fail(pc.red("No security answers found. Run `erp setup` again."));
     process.exit(1);
   }
-  spinner.succeed();
+  spinner2.succeed();
 
   //ERP login flow
   const erp = new ErpClient(config.erpUrl);
   const reader = new ImapOtpReader(config.gmailEmail, gmailAppPassword);
+  const spinner3 = ora();
 
   try {
-    spinner.start(pc.cyan("[1/5]") + " Initiating ERP session...");
-    const { sessionToken } = await erp.initiateSession();
-    spinner.succeed();
+    // ERP session + Gmail connect- parallel
+    spinner3.start(pc.cyan("[1/4]") + " Connecting to ERP & Gmail...");
+    const [_, gmailReady] = await Promise.all([
+      erp.initiateSession(),
+      reader.connect().then(() => reader.snapshotLatestUid()),
+    ]);
+    const beforeUid = gmailReady;
+    spinner3.succeed();
 
-    spinner.start(pc.cyan("[2/5]") + " Fetching security question...");
+    spinner3.start(pc.cyan("[2/4]") + " Fetching security question...");
     const question = await erp.getSecurityQuestion(config.erpRoll);
 
     const answer = answers[question.toLowerCase().trim()];
     if (!answer) {
-      spinner.fail(pc.red(`Unknown security question: "${question}"`));
+      spinner3.fail(pc.red(`Unknown security question: "${question}"`));
       console.log(pc.dim("Run `erp setup` to add this question."));
       process.exit(1);
     }
-    spinner.succeed();
+    spinner3.succeed();
 
-    spinner.start(pc.cyan("[3/5]") + " Connecting to Gmail...");
-    await reader.connect();
-    const beforeUid = await reader.snapshotLatestUid();
-    spinner.succeed();
-
-    spinner.start(pc.cyan("[4/5]") + " Requesting OTP...");
+    spinner3.start(pc.cyan("[3/4]") + " Requesting OTP & waiting...");
     await erp.requestOtp(config.erpRoll, erpPassword, answer);
-    spinner.succeed();
-
-    spinner.start(pc.cyan("[4/5]") + " Waiting for OTP email...");
     const otp = await reader.waitForOtp(beforeUid);
     await reader.disconnect();
-    spinner.succeed();
+    spinner3.succeed();
 
-    spinner.start(pc.cyan("[5/5]") + " Authenticating...");
+    spinner3.start(pc.cyan("[4/4]") + " Authenticating...");
     const ssoToken = await erp.authenticate(
       config.erpRoll,
       erpPassword,
       answer,
       otp
     );
-    spinner.succeed();
+    spinner3.succeed();
+
+    // Save session for next time (caching)
+    await sessionStorage.saveSession({
+      ssoToken,
+      erpUrl: config.erpUrl,
+      createdAt: Date.now(),
+    });
 
     const loginUrl = `${config.erpUrl}/IIT_ERP3/home.htm?ssoToken=${ssoToken}`;
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n${pc.green("✓")} ${pc.bold("Login successful!")} ${pc.dim(`(${duration}s)`)}`);
-    
     console.log(pc.dim("Opening browser..."));
-
-    // Open browser (cross-platform)
-    const { exec } = await import("child_process");
-    const openCmd =
-      process.platform === "win32"
-        ? `start "" "${loginUrl}"`
-        : process.platform === "darwin"
-          ? `open "${loginUrl}"`
-          : `xdg-open "${loginUrl}"`;
-
-    exec(openCmd, (err) => {
-      if (err) {
-        console.log(pc.yellow("Could not open browser. Open this URL manually:"));
-        console.log(loginUrl);
-      }
-    });
+    await openBrowser(loginUrl);
   } catch (error: any) {
-    spinner.fail(pc.red("Login failed"));
+    spinner3.fail(pc.red("Login failed"));
     
     // Better error recovery hints
     if (error.message.includes("Timed out waiting for OTP email")) {
