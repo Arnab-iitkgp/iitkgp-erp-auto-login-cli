@@ -1,4 +1,6 @@
 import prompts from "prompts";
+import pc from "picocolors";
+import ora from "ora";
 
 import { ErpClient } from "../services/erp/erp-client.js";
 import { ImapOtpReader } from "../services/imap/otp-reader.js";
@@ -9,7 +11,7 @@ import { SECRET_KEYS } from "../services/storage/secrets.js";
 // If user presses Ctrl+C during any prompt, exit cleanly
 // Without this, prompts() returns {} and we'd store undefined values
 function onCancel() {
-  console.log("\nSetup cancelled.");
+  console.log(pc.yellow("\nSetup cancelled."));
   process.exit(0);
 }
 
@@ -20,7 +22,7 @@ export const setupCommand = async function () {
   // --- Check keychain availability ---
   const available = await keychain.isAvailable();
   if (!available) {
-    console.log("Secure credential storage unavailable on this system.");
+    console.log(pc.red("Secure credential storage unavailable on this system."));
     //TODO: linux fallback later
     return;
   }
@@ -39,7 +41,7 @@ export const setupCommand = async function () {
     );
 
     if (!overwrite) {
-      console.log("Setup cancelled. Existing config kept.");
+      console.log(pc.yellow("Setup cancelled. Existing config kept."));
       return;
     }
   }
@@ -59,16 +61,18 @@ export const setupCommand = async function () {
   const erpRoll = rollRes.erpRoll.trim();
 
   //fetch seq questiona
-  console.log(`\nFetching your security questions from ERP...`);
+  console.log("");
+  const spinner = ora(`Fetching your security questions from ERP...`).start();
   const erpClient = new ErpClient("https://erp.iitkgp.ac.in");
   const fetchedQuestions = await erpClient.fetchAllSecurityQuestions(erpRoll);
   
   if (fetchedQuestions.length === 0) {
-    console.error("could not fetch security questions. Is the roll number correct?");
+    spinner.fail(pc.red("Could not fetch security questions. Is the roll number correct?"));
     process.exit(1);
   }
 
-  console.log(`Found ${fetchedQuestions.length} questions!\n`);
+  spinner.succeed();
+  console.log(`Found ${pc.bold(fetchedQuestions.length)} questions!\n`);
 
   // ERP password
   const { erpPassword } = await prompts(
@@ -85,7 +89,7 @@ export const setupCommand = async function () {
   // Security question answers
   const securityQuestions: Record<string, string> = {};
   
-  console.log("\nPlease provide answers to your security questions:");
+  console.log(pc.cyan("\nPlease provide answers to your security questions:"));
   
   for (let i = 0; i < fetchedQuestions.length; i++) {
     const q = fetchedQuestions[i] as string;
@@ -108,9 +112,9 @@ export const setupCommand = async function () {
   }
 
   // Gmail setup with guidance
-  console.log("\n──────────────────────────────────────────────");
-  console.log("  Gmail Setup (for auto-reading OTP emails)");
-  console.log("──────────────────────────────────────────────");
+  console.log(pc.dim("\n──────────────────────────────────────────────"));
+  console.log(pc.bold(pc.cyan("  Gmail Setup (for auto-reading OTP emails)")));
+  console.log(pc.dim("──────────────────────────────────────────────"));
   console.log("\n  We need a Gmail App Password to read your OTP emails.");
   console.log("  This is NOT your regular Gmail password.\n");
   console.log("  How to get one:");
@@ -145,7 +149,8 @@ export const setupCommand = async function () {
   );
 
   // Verify Gmail credentials before saving
-  console.log("\n  Verifying Gmail connection...");
+  console.log("");
+  const spinner2 = ora("Verifying Gmail connection...").start();
   const testReader = new ImapOtpReader(
     gmailResponse.gmailEmail.trim(),
     gmailResponse.gmailAppPassword
@@ -154,10 +159,11 @@ export const setupCommand = async function () {
   try {
     await testReader.connect();
     await testReader.disconnect();
+    spinner2.succeed();
     console.log("  Gmail connection verified!\n");
   } catch {
-    console.error("  Failed to connect to Gmail.");
-    console.error("  Check your email and app password and try again.");
+    spinner2.fail(pc.red("Failed to connect to Gmail."));
+    console.error(pc.dim("  Check your email and app password and try again."));
     process.exit(1);
   }
 
@@ -176,9 +182,7 @@ export const setupCommand = async function () {
     gmailResponse.gmailAppPassword
   );
 
-  console.log(
-    `Setup complete! ${fetchedQuestions.length} security question(s) saved.`
-  );
-  console.log("Tip: Run `erp status --reveal` to double-check your saved answers for typos.");
-  console.log("Run `erp login` to auto-login to ERP.");
+  console.log(pc.green(`\n✓ Setup complete! ${pc.bold(fetchedQuestions.length)} security question(s) saved.`));
+  console.log(pc.dim("Tip: Run `erp status --reveal` to double-check your saved answers for typos."));
+  console.log(pc.bold("\nRun `erp login` to auto-login to ERP.\n"));
 };

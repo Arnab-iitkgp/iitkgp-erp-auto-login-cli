@@ -24,15 +24,20 @@
     "commander": "^14.0.3",
     "env-paths": "^4.0.0",
     "imapflow": "^1.4.0",
+    "ora": "^9.4.0",
+    "picocolors": "^1.1.1",
     "prompts": "^2.4.2",
     "tsx": "^4.21.0",
     "write-file-atomic": "^7.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/figlet": "^1.7.0",
     "@types/node": "^25.6.2",
     "@types/prompts": "^2.4.9",
     "@types/write-file-atomic": "^4.0.3",
+    "figlet": "^1.11.0",
+    "jimp": "^1.6.1",
     "typescript": "^6.0.3"
   }
 }

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import pc from "picocolors";
+import prompts from "prompts";
 import { loginCommand } from "./commands/login.js";
 import { setupCommand } from "./commands/setup.js";
 import { resetCommand } from "./commands/reset.js";
@@ -11,6 +13,17 @@ program
   .name("erp")
   .description("CLI tool for IIT KGP ERP auto-login")
   .version("1.0.0");
+
+const banner = `
+ ${pc.cyan("███████╗██████╗ ██████╗       ██████╗██╗     ██╗")}
+ ${pc.cyan("██╔════╝██╔══██╗██╔══██╗     ██╔════╝██║     ██║")}
+ ${pc.cyan("█████╗  ██████╔╝██████╔╝     ██║     ██║     ██║")}
+ ${pc.cyan("██╔══╝  ██╔══██╗██╔═══╝      ██║     ██║     ██║")}
+ ${pc.cyan("███████╗██║  ██║██║          ╚██████╗███████╗██║")}
+ ${pc.cyan("╚══════╝╚═╝  ╚═╝╚═╝           ╚═════╝╚══════╝╚═╝")}
+`;
+
+program.addHelpText("beforeAll", banner);
 
 program
   .command("login")
@@ -33,4 +46,33 @@ program
   .option("--reveal", "Reveal secrets (requires ERP password)")
   .action(statusCommand);
 
-program.parse();
+async function main() {
+  if (process.argv.length === 2) {
+    console.log(banner);
+    const { action } = await prompts({
+      type: "select",
+      name: "action",
+      message: "What would you like to do?",
+      choices: [
+        { title: "Login to ERP", value: "login" },
+        { title: "Check status", value: "status" },
+        { title: "Run setup", value: "setup" },
+        { title: "Reset credentials", value: "reset" },
+        { title: "Exit", value: "exit" },
+      ],
+    });
+
+    if (!action || action === "exit") {
+      process.exit(0);
+    }
+
+    if (action === "login") await loginCommand();
+    if (action === "status") await statusCommand({});
+    if (action === "setup") await setupCommand();
+    if (action === "reset") await resetCommand();
+  } else {
+    program.parse();
+  }
+}
+
+main();

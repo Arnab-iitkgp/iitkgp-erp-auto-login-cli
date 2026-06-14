@@ -1,4 +1,5 @@
 import prompts from "prompts";
+import pc from "picocolors";
 import { FileStorageService } from "../services/storage/file-storage.js";
 import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
@@ -16,9 +17,9 @@ export const statusCommand = async function (options: { reveal?: boolean }) {
   try {
     const config = await fileStorage.loadConfig();
 
-    console.log("\n  ERP CLI Status");
-    console.log("  ──────────────────────────");
-    console.log(`  Roll Number:    ${config.erpRoll}`);
+    console.log(`\n  ${pc.bold(pc.cyan("ERP CLI Status"))}`);
+    console.log(pc.dim("  ──────────────────────────"));
+    console.log(`  Roll Number:    ${pc.bold(config.erpRoll)}`);
     console.log(`  ERP URL:        ${config.erpUrl}`);
     console.log(`  Gmail:          ${config.gmailEmail}`);
 
@@ -47,16 +48,18 @@ export const statusCommand = async function (options: { reveal?: boolean }) {
       console.log("  (Cannot reveal: ERP password not set up.)\n");
     }
 
-    console.log(`  ERP Password:   ${hasErpPass ? "✓ saved" : "✗ missing"}`);
+    const formatStatus = (saved: boolean) => saved ? pc.green("✓ saved") : pc.red("✗ missing");
+
+    console.log(`  ERP Password:   ${formatStatus(hasErpPass)}`);
     if (revealAnswers && hasGmailPass) {
-      console.log(`  Gmail App Pass: → "${gmailAppPassSecret}"`);
+      console.log(`  Gmail App Pass: → "${pc.yellow(gmailAppPassSecret as string)}"`);
     } else {
-      console.log(`  Gmail App Pass: ${hasGmailPass ? "✓ saved" : "✗ missing"}`);
+      console.log(`  Gmail App Pass: ${formatStatus(hasGmailPass)}`);
     }
 
     // Check security questions
     const questions = Object.keys(config.securityQuestions);
-    console.log(`\n  Security Questions: ${questions.length}`);
+    console.log(`\n  Security Questions: ${pc.bold(questions.length)}`);
 
     for (const q of questions) {
       const keychainKey = config.securityQuestions[q]!;
@@ -64,9 +67,9 @@ export const statusCommand = async function (options: { reveal?: boolean }) {
       const hasAnswer = !!answer;
       
       if (revealAnswers && hasAnswer) {
-        console.log(`    • ${q} → "${answer}"`);
+        console.log(`    • ${q} → "${pc.yellow(answer as string)}"`);
       } else {
-        console.log(`    • ${q} ${hasAnswer ? "✓" : "✗ answer missing, please do erp setup"}`);
+        console.log(`    • ${q} ${hasAnswer ? pc.green("✓") : pc.red("✗ answer missing, please do `erp setup`")}`);
       }
     }
 
