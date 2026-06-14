@@ -32,7 +32,6 @@ A sleek, state-of-the-art Command Line Interface (CLI) tool designed for auto-lo
 ## Installation
 
 ### Prerequisites
-
 - **Node.js** (v18 or higher recommended)
 - **Gmail App Password**: For security reasons, Gmail requires an App Password to authenticate over IMAP. You can create one in your Google Account settings (Security > 2-Step Verification > App passwords).
 
@@ -51,7 +50,6 @@ _(Or build locally and link using `npm link`)_
 ## Getting Started
 
 ### 1. Setup Configuration
-
 Run the setup command to configure your Roll Number, Gmail address, ERP Password, Gmail App Password, and answers to your security questions.
 
 ```bash
@@ -67,12 +65,10 @@ To auto-login and launch your browser:
 ```bash
 erp login
 ```
-
 - If you have an active cached session, it will say `Session alive — skipping OTP!` and immediately open your browser in under **1 second**.
 - If the session is expired or not found, it will trigger the full authentication flow (requires Gmail connectivity) and automatically renew the cache.
 
 ### 3. Check Configuration Status
-
 To view your saved Roll Number and Gmail email:
 
 ```bash
