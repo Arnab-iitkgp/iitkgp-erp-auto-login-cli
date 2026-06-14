@@ -29,8 +29,8 @@ program
 
 program
   .command("status")
-  .description("Show current configuration status")
-  .option("--reveal", "Reveal security answers (requires ERP password)")
+  .description("Show current configuration status (use --reveal to see secrets)")
+  .option("--reveal", "Reveal secrets (requires ERP password)")
   .action(statusCommand);
 
 program.parse();

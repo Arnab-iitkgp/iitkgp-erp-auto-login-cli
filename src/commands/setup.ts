@@ -179,5 +179,6 @@ export const setupCommand = async function () {
   console.log(
     `Setup complete! ${fetchedQuestions.length} security question(s) saved.`
   );
+  console.log("Tip: Run `erp status --reveal` to double-check your saved answers for typos.");
   console.log("Run `erp login` to auto-login to ERP.");
 };
