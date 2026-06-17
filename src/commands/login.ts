@@ -1,3 +1,4 @@
+import { Command } from "commander";
 import pc from "picocolors";
 import ora from "ora";
 import { ErpClient } from "../services/erp/erp-client.js";
@@ -8,7 +9,7 @@ import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
 import { openBrowser } from "../utils/browser.js";
 
-export const loginCommand = async function (options: { fresh?: boolean } = {}) {
+export const loginAction = async function (options: { fresh?: boolean } = {}) {
   const fileStorage = new FileStorageService();
   const sessionStorage = new FileSessionStorage();
   const keychain = new KeychainService();
@@ -155,3 +156,7 @@ export const loginCommand = async function (options: { fresh?: boolean } = {}) {
     await reader.disconnect();
   }
 };
+export const loginCommand = new Command("login")
+  .description("Auto-login to ERP and open browser")
+  .option("--fresh", "Skip cached session, force fresh OTP login")
+  .action(loginAction);

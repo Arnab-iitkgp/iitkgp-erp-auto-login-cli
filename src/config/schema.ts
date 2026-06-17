@@ -8,5 +8,7 @@ export const AppConfigSchema = z.object({
     z.string(),  // key
     z.string()   // value
   ),
+  savedSlots: z.array(z.string()).optional(),
+  slotNames: z.record(z.string(), z.string()).optional(),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;

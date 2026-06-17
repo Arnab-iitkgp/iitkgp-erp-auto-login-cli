@@ -1,10 +1,11 @@
+import { Command } from "commander";
 import prompts from "prompts";
 import pc from "picocolors";
 import { FileStorageService } from "../services/storage/file-storage.js";
 import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
 
-export const statusCommand = async function (options: { reveal?: boolean }) {
+export const statusAction = async function (options: { reveal?: boolean }) {
   const fileStorage = new FileStorageService();
   const keychain = new KeychainService();
 
@@ -79,3 +80,8 @@ export const statusCommand = async function (options: { reveal?: boolean }) {
     console.log("Run `erp reset` then `erp setup` to fix.");
   }
 };
+
+export const statusCommand = new Command("status")
+  .description("Show current configuration status (use --reveal to see secrets)")
+  .option("--reveal", "Reveal secrets (requires ERP password)")
+  .action(statusAction);

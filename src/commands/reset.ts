@@ -1,3 +1,4 @@
+import { Command } from "commander";
 import prompts from "prompts";
 
 import { FileStorageService } from "../services/storage/file-storage.js";
@@ -5,7 +6,7 @@ import { FileSessionStorage } from "../services/storage/session-storage.js";
 import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
 
-export const resetCommand = async function () {
+export const resetAction = async function () {
   const fileStorage = new FileStorageService();
   const sessionStorage = new FileSessionStorage();
   const keychain = new KeychainService();
@@ -54,3 +55,7 @@ export const resetCommand = async function () {
 
   console.log("All credentials, config, and session have been removed.");
 };
+
+export const resetCommand = new Command("reset")
+  .description("Delete all saved credentials and config")
+  .action(resetAction);

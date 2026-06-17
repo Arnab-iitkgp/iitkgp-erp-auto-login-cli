@@ -1,3 +1,4 @@
+import { Command } from "commander";
 import prompts from "prompts";
 import pc from "picocolors";
 import ora from "ora";
@@ -15,7 +16,7 @@ function onCancel() {
   process.exit(0);
 }
 
-export const setupCommand = async function () {
+export const setupAction = async function () {
   const fileStorage = new FileStorageService();
   const keychain = new KeychainService();
 
@@ -116,10 +117,12 @@ export const setupCommand = async function () {
   console.log(pc.bold(pc.cyan("  Gmail Setup (for auto-reading OTP emails)")));
   console.log(pc.dim("──────────────────────────────────────────────"));
   console.log("\n  We need a Gmail App Password to read your OTP emails.");
-  console.log("  This is NOT your regular Gmail password.\n");
+  console.log("  This is NOT your regular Gmail password. And it is safe\n");
   console.log("  How to get one:");
+  console.log("  0. Make sure 2-Step Verification is ON for your Gmail account");
+  console.log("     " + pc.dim("https://myaccount.google.com/signinoptions/two-step-verification"));
   console.log("  1. Go to https://myaccount.google.com/apppasswords");
-  console.log("  2. Select 'Other' → name it 'erp-cli'");
+  console.log("  2. Select 'create' → name it 'erp-cli'");
   console.log("  3. Copy the 16-character password\n");
   console.log("  Your App Password is stored securely in your OS keychain");
   console.log("  (Windows Credential Manager / macOS Keychain).");
@@ -186,3 +189,6 @@ export const setupCommand = async function () {
   console.log(pc.dim("Tip: Run `erp status --reveal` to double-check your saved answers for typos."));
   console.log(pc.bold("\nRun `erp login` to auto-login to ERP.\n"));
 };
+export const setupCommand = new Command("setup")
+  .description("Configure credentials and security questions")
+  .action(setupAction);

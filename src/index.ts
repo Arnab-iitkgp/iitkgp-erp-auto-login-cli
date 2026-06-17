@@ -2,10 +2,13 @@
 import { Command } from "commander";
 import prompts from "prompts";
 import pc from "picocolors";
-import { loginCommand } from "./commands/login.js";
-import { setupCommand } from "./commands/setup.js";
-import { resetCommand } from "./commands/reset.js";
-import { statusCommand } from "./commands/status.js";
+import { loginCommand, loginAction } from "./commands/login.js";
+import { setupCommand, setupAction } from "./commands/setup.js";
+import { resetCommand, resetAction } from "./commands/reset.js";
+import { statusCommand, statusAction } from "./commands/status.js";
+import { slotCommand, slotMenu } from "./commands/slot.js";
+import { guideCommand, renderGuide } from "./commands/guide.js";
+import { devnoteCommand, renderDevnote } from "./commands/devnote.js";
 import { banner } from "./utils/banner.js";
 
 const program = new Command();
@@ -15,27 +18,13 @@ program
   .description("CLI tool for IIT KGP ERP auto-login")
   .version("1.0.0");
 
-program
-  .command("login")
-  .description("Auto-login to ERP and open browser")
-  .option("--fresh", "Skip cached session, force fresh OTP login")
-  .action(loginCommand);
-
-program
-  .command("setup")
-  .description("Configure credentials and security questions")
-  .action(setupCommand);
-
-program
-  .command("reset")
-  .description("Delete all saved credentials and config")
-  .action(resetCommand);
-
-program
-  .command("status")
-  .description("Show current configuration status (use --reveal to see secrets)")
-  .option("--reveal", "Reveal secrets (requires ERP password)")
-  .action(statusCommand);
+program.addCommand(loginCommand);
+program.addCommand(setupCommand);
+program.addCommand(resetCommand);
+program.addCommand(statusCommand);
+program.addCommand(slotCommand);
+program.addCommand(guideCommand);
+program.addCommand(devnoteCommand);
 
 async function main() {
   if (process.argv.length === 2) {
@@ -47,10 +36,12 @@ async function main() {
       message: "What would you like to do?",
       choices: [
         { title: "Login to ERP", value: "login" },
+        { title: "Manage timetable", value: "slot" },
         { title: "Check status", value: "status" },
         { title: "Run setup", value: "setup" },
         { title: "Reset credentials", value: "reset" },
         { title: "See available commands", value: "help" },
+        { title: "A note from the dev", value: "devnote" },
         { title: "Exit", value: "exit" },
       ],
     });
@@ -60,19 +51,24 @@ async function main() {
     }
 
     if (action === "help") {
-      console.log(`\n${pc.dim("  Commands:")}`);
-      console.log(`    ${pc.bold("erp login")}            Auto-login to ERP & open browser`);
-      console.log(`    ${pc.bold("erp setup")}            Configure credentials & security questions`);
-      console.log(`    ${pc.bold("erp status")}           Show saved config ${pc.dim("(--reveal to see secrets)")}`);
-      console.log(`    ${pc.bold("erp reset")}            Delete all saved credentials`);
-      console.log();
+      renderGuide();
       return;
     }
 
-    if (action === "login") await loginCommand();
-    if (action === "status") await statusCommand({});
-    if (action === "setup") await setupCommand();
-    if (action === "reset") await resetCommand();
+    if (action === "devnote") {
+      renderDevnote();
+      return;
+    }
+
+    if (action === "slot") {
+      await slotMenu();
+      return;
+    }
+
+    if (action === "login") await loginAction();
+    if (action === "status") await statusAction({});
+    if (action === "setup") await setupAction();
+    if (action === "reset") await resetAction();
   } else {
     program.parse();
   }
