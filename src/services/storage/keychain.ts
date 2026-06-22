@@ -1,4 +1,3 @@
-import { Entry } from "@napi-rs/keyring";
 import fs from "fs/promises";
 import path from "path";
 import { paths } from "../../config/paths.js";
@@ -13,6 +12,27 @@ export const FALLBACK_FILE = path.join(paths.config, "secrets.json");
 const forceFile = (): boolean =>
   process.env.ERP_FORCE_FILE_STORAGE === "1" ||
   process.env.ERP_FORCE_FILE_STORAGE === "true";
+
+// Lazy-load the native keyring binding. @napi-rs/keyring has no android-arm64
+// prebuilt, so a static import would crash at module load on Termux. Cache the
+// result (constructor or null) so we probe at most once.
+type EntryCtor = new (service: string, account: string) => {
+  setPassword(value: string): void;
+  getPassword(): string | null;
+  deletePassword(): void;
+};
+
+let entryCtorCache: EntryCtor | null | undefined;
+async function loadEntry(): Promise<EntryCtor | null> {
+  if (entryCtorCache !== undefined) return entryCtorCache;
+  try {
+    const mod = await import("@napi-rs/keyring");
+    entryCtorCache = mod.Entry as unknown as EntryCtor;
+  } catch {
+    entryCtorCache = null;
+  }
+  return entryCtorCache;
+}
 
 export class KeychainService implements SecretStorageService {
   private async getFallbackSecrets(): Promise<Record<string, string>> {
@@ -32,12 +52,15 @@ export class KeychainService implements SecretStorageService {
 
   async setSecret(key: string, value: string): Promise<void> {
     if (!forceFile()) {
-      try {
-        const entry = new Entry(SERVICE_NAME, key);
-        entry.setPassword(value);
-        return;
-      } catch {
-        // fall through to file
+      const Entry = await loadEntry();
+      if (Entry) {
+        try {
+          const entry = new Entry(SERVICE_NAME, key);
+          entry.setPassword(value);
+          return;
+        } catch {
+          // fall through to file
+        }
       }
     }
     const secrets = await this.getFallbackSecrets();
@@ -47,12 +70,15 @@ export class KeychainService implements SecretStorageService {
 
   async getSecret(key: string): Promise<string | null> {
     if (!forceFile()) {
-      try {
-        const entry = new Entry(SERVICE_NAME, key);
-        const val = entry.getPassword();
-        if (val) return val;
-      } catch {
-        // fall through to file
+      const Entry = await loadEntry();
+      if (Entry) {
+        try {
+          const entry = new Entry(SERVICE_NAME, key);
+          const val = entry.getPassword();
+          if (val) return val;
+        } catch {
+          // fall through to file
+        }
       }
     }
     const secrets = await this.getFallbackSecrets();
@@ -61,11 +87,14 @@ export class KeychainService implements SecretStorageService {
 
   async deleteSecret(key: string): Promise<void> {
     if (!forceFile()) {
-      try {
-        const entry = new Entry(SERVICE_NAME, key);
-        entry.deletePassword();
-      } catch {
-        // fall through to file
+      const Entry = await loadEntry();
+      if (Entry) {
+        try {
+          const entry = new Entry(SERVICE_NAME, key);
+          entry.deletePassword();
+        } catch {
+          // fall through to file
+        }
       }
     }
     const secrets = await this.getFallbackSecrets();
@@ -77,6 +106,8 @@ export class KeychainService implements SecretStorageService {
 
   async isAvailable(): Promise<boolean> {
     if (forceFile()) return false;
+    const Entry = await loadEntry();
+    if (!Entry) return false;
     try {
       const entry = new Entry(SERVICE_NAME, "__erp_cli_probe__");
       entry.setPassword("probe");
