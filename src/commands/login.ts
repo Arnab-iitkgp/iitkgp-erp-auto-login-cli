@@ -26,6 +26,10 @@ export const loginAction = async function (options: { fresh?: boolean } = {}) {
   const config = await fileStorage.loadConfig();
   spinner.succeed();
 
+  if (await keychain.usesFallback()) {
+    console.log(pc.dim("  (using fallback file storage — keychain unavailable)"));
+  }
+
   // Skip cache if --fresh flag is passed
   if (!options.fresh) {
     const cached = await sessionStorage.loadSession();

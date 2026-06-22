@@ -6,7 +6,7 @@ import ora from "ora";
 import { ErpClient } from "../services/erp/erp-client.js";
 import { ImapOtpReader } from "../services/imap/otp-reader.js";
 import { FileStorageService } from "../services/storage/file-storage.js";
-import { KeychainService } from "../services/storage/keychain.js";
+import { KeychainService, FALLBACK_FILE } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
 
 // If user presses Ctrl+C during any prompt, exit cleanly
@@ -20,12 +20,30 @@ export const setupAction = async function () {
   const fileStorage = new FileStorageService();
   const keychain = new KeychainService();
 
-  // --- Check keychain availability ---
+  // --- Check keychain availability; fall back to a plain-text file with consent ---
   const available = await keychain.isAvailable();
   if (!available) {
-    console.log(pc.red("Secure credential storage unavailable on this system."));
-    //TODO: linux fallback later
-    return;
+    console.log(pc.yellow("\n⚠️  Secure keychain is not available on this device."));
+    console.log(`    Credentials will be stored in plain text at:`);
+    console.log(`      ${pc.dim(FALLBACK_FILE)}`);
+    console.log(`    This is fine on a non-rooted Android (Termux) device, but:`);
+    console.log(`      • Don't share Termux backups or the config folder.`);
+    console.log(`      • Rotate your Gmail App Password if the device is compromised.\n`);
+
+    const { proceed } = await prompts(
+      {
+        type: "confirm",
+        name: "proceed",
+        message: "Continue setup with plain-text storage?",
+        initial: false,
+      },
+      { onCancel }
+    );
+
+    if (!proceed) {
+      console.log(pc.yellow("Setup cancelled."));
+      return;
+    }
   }
 
   // --- Check for existing config ---

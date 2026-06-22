@@ -24,6 +24,11 @@ export const statusAction = async function (options: { reveal?: boolean }) {
     console.log(`  ERP URL:        ${config.erpUrl}`);
     console.log(`  Gmail:          ${config.gmailEmail}`);
 
+    const storageMode = (await keychain.usesFallback())
+      ? pc.yellow("plain-text file (keychain unavailable)")
+      : pc.green("OS keychain");
+    console.log(`  Storage:        ${storageMode}`);
+
     const hasErpPass = !!(await keychain.getSecret(SECRET_KEYS.ERP_PASSWORD));
     const gmailAppPassSecret = await keychain.getSecret(SECRET_KEYS.GMAIL_APP_PASSWORD);
     const hasGmailPass = !!gmailAppPassSecret;
