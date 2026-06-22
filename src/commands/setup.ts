@@ -26,8 +26,9 @@ export const setupAction = async function () {
     console.log(pc.yellow("\n⚠️  Secure keychain is not available on this device."));
     console.log(`    Credentials will be stored in plain text at:`);
     console.log(`      ${pc.dim(FALLBACK_FILE)}`);
-    console.log(`    This is fine on a non-rooted Android (Termux) device, but:`);
-    console.log(`      • Don't share Termux backups or the config folder.`);
+    console.log(`    Your credentials stay on this device only — they are never sent`);
+    console.log(`    to any server. A few precautions:`);
+    console.log(`      • Don't share backups or copies of your config folder.`);
     console.log(`      • Rotate your Gmail App Password if the device is compromised.\n`);
 
     const { proceed } = await prompts(

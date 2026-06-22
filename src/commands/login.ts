@@ -147,10 +147,10 @@ export const loginAction = async function (options: { fresh?: boolean } = {}) {
     
     // Better error recovery hints
     if (error.message.includes("Timed out waiting for OTP email")) {
-      console.log(`\n${pc.red("✗ OTP not received within 30s")}`);
+      console.log(`\n${pc.red("✗ OTP not received within 60s")}`);
       console.log(`\nPossible causes:`);
       console.log(`  • ${pc.bold("Wrong security answer")} → run \`erp status --reveal\` to check for typos`);
-      console.log(`  • ${pc.bold("Gmail delay")} → try again in a minute`);
+      console.log(`  • ${pc.bold("Slow mobile network")} → Gmail-to-IMAP delivery can take >60s on weak signal; retry`);
       console.log(`  • ${pc.bold("ERP rate limiting")} → check erp.iitkgp.ac.in manually to see if OTPs are still sending`);
     } else {
       console.error(pc.red(`\nError details: ${error.message}`));

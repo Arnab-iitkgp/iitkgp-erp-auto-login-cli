@@ -44,7 +44,7 @@ export class ImapOtpReader {
   // Poll for a NEW OTP email that arrives after `beforeUid`
   async waitForOtp(
     beforeUid: number,
-    timeoutMs: number = 30000,
+    timeoutMs: number = 60000,
     pollIntervalMs: number = 2000
   ): Promise<string> {
     const deadline = Date.now() + timeoutMs;
