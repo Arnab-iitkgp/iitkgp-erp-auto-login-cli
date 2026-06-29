@@ -14,6 +14,10 @@ export const loginAction = async function (options: { fresh?: boolean } = {}) {
   const sessionStorage = new FileSessionStorage();
   const keychain = new KeychainService();
 
+  if (options.fresh) {
+    console.log(pc.dim("  --fresh: cached session will be ignored"));
+  }
+
   const startTime = Date.now();
   const spinner = ora("Loading config...").start();
 

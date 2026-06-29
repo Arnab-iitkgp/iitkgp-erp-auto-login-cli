@@ -180,7 +180,15 @@ export class ErpClient{
 
          if (authResponse.status < 300 || authResponse.status >= 400) {
             const text = await authResponse.text();
-            throw new Error(`Auth failed (status ${authResponse.status}): ${text.substring(0, 200)}`);
+            // ERP bounces failed auth to the login page (200 + "Welcome to ERP" HTML)
+            if (authResponse.status === 200 && text.includes("<title>Welcome to ERP</title>")) {
+                throw new Error(
+                    "Auth rejected by ERP — bounced back to the login page. " +
+                    "Most likely cause: wrong OTP, wrong security answer, or your ERP password was changed in the web UI. " +
+                    "Try re-running `erp setup` to refresh stored credentials."
+                );
+            }
+            throw new Error(`Auth failed (status ${authResponse.status}): ${text.substring(0, 2000)}`);
         }
 
         const successLocation = authResponse.headers.get("Location");

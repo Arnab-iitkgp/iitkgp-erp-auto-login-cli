@@ -34,11 +34,15 @@ export class ImapOtpReader {
     return uids[uids.length - 1] ?? null;
   }
 
-  // Extract 6-digit OTP
+  // Extract the 6-digit OTP from the Subject line specifically.
+  // ERP's subject is: "OTP for Sign In in ERP Portal of IIT Kharagpur is 038093"
+  // Searching the whole raw source matches timestamps in headers (e.g. "16:46:01" -> "164601").
   private extractOtp(rawSource: Buffer): string | null {
     const text = rawSource.toString();
-    const match = text.match(/\b(\d{6})\b/);
-    return match && match[1] ? match[1] : null;
+    const subjMatch = text.match(/^Subject: (.+)$/m);
+    if (!subjMatch || !subjMatch[1]) return null;
+    const otpMatch = subjMatch[1].match(/\b(\d{6})\b/);
+    return otpMatch && otpMatch[1] ? otpMatch[1] : null;
   }
 
   // Poll for a NEW OTP email that arrives after `beforeUid`
