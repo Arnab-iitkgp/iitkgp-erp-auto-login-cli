@@ -1,5 +1,11 @@
 import { ImapFlow } from "imapflow";
 
+const isDebug = () =>
+  process.env.ERP_DEBUG === "1" || process.env.ERP_DEBUG === "true";
+const dbg = (...args: unknown[]) => {
+  if (isDebug()) console.log("\x1b[2m[debug]", ...args, "\x1b[0m");
+};
+
 const OTP_SUBJECT = "OTP for Sign In in ERP Portal of IIT Kharagpur";
 
 export class ImapOtpReader {
@@ -69,8 +75,11 @@ export class ImapOtpReader {
           if (++checked > 10) break;  // safety cap
           if (msg.uid > beforeUid && msg.source) {
             const text = msg.source.toString();
+            const subjMatch = text.match(/^Subject: (.+)$/m);
+            dbg(`uid=${msg.uid}, subject="${subjMatch?.[1] ?? "(none)"}"`);
             if (text.includes(OTP_SUBJECT)) {
               const otp = this.extractOtp(msg.source);
+              dbg(`  matched subject; extracted otp="${otp}"`);
               if (otp) return otp;
             }
           }

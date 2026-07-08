@@ -9,10 +9,16 @@ import { KeychainService } from "../services/storage/keychain.js";
 import { SECRET_KEYS } from "../services/storage/secrets.js";
 import { openBrowser } from "../utils/browser.js";
 
-export const loginAction = async function (options: { fresh?: boolean } = {}) {
+export const loginAction = async function (options: { fresh?: boolean; debug?: boolean } = {}) {
   const fileStorage = new FileStorageService();
   const sessionStorage = new FileSessionStorage();
   const keychain = new KeychainService();
+
+  // Flip debug on before any service call so the runtime dbg() checks pick it up.
+  if (options.debug) {
+    process.env.ERP_DEBUG = "1";
+    console.log(pc.dim("  --debug: verbose request/response logging enabled"));
+  }
 
   if (options.fresh) {
     console.log(pc.dim("  --fresh: cached session will be ignored"));
@@ -123,6 +129,7 @@ export const loginAction = async function (options: { fresh?: boolean } = {}) {
     const otp = await reader.waitForOtp(beforeUid);
     await reader.disconnect();
     spinner3.succeed();
+    console.log(`  OTP: ${pc.cyan(pc.bold(otp))}`);
 
     spinner3.start(pc.cyan("[4/4]") + " Authenticating...");
     const ssoToken = await erp.authenticate(
@@ -167,4 +174,5 @@ export const loginAction = async function (options: { fresh?: boolean } = {}) {
 export const loginCommand = new Command("login")
   .description("Auto-login to ERP and open browser")
   .option("--fresh", "Skip cached session, force fresh OTP login")
+  .option("--debug", "Print verbose request/response and OTP-extraction diagnostics")
   .action(loginAction);

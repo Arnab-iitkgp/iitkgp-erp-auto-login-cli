@@ -87,6 +87,14 @@ const GUIDE: Section[] = [
     intro: "Use these during course and right before registration.",
     entries: [
       {
+        name: "erp slot when <slot>",
+        purpose: "Show when a slot meets — days, periods, and time-of-day. Works for any slot, whether saved or not.",
+        examples: [
+          { cmd: "erp slot when D3" },
+          { cmd: "erp slot when q", note: "lab shortcut" },
+        ],
+      },
+      {
         name: "erp slot check <slot>",
         purpose: "Check whether a single slot fits your saved schedule. Shows which slots it clashes with if not.",
         examples: [{ cmd: "erp slot check D3" }],

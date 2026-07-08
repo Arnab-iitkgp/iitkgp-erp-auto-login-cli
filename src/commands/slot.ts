@@ -378,6 +378,39 @@ slotCommand
   });
 
 slotCommand
+  .command("when <slot_name>")
+  .description("Show when a slot meets — days, periods, times, credits (works for any slot, saved or not)")
+  .action(async (rawSlot) => {
+    const { valid, invalid } = normalizeSlots([rawSlot]);
+    if (invalid.length > 0 || valid.length === 0) {
+      console.log(pc.red(`❌ Unknown slot: ${pc.bold(rawSlot)}`));
+      console.log(pc.dim("   Try something like D3, U4, or LAB:Q (or bare letter for labs, e.g. q)"));
+      return;
+    }
+
+    const slotName = valid[0]!;
+    const slot = STANDARD_SLOTS.find(s => s.name.toUpperCase() === slotName);
+    if (!slot) {
+      console.log(pc.red(`❌ Slot ${slotName} not found in central timetable.`));
+      return;
+    }
+
+    console.log();
+    console.log(`${pc.bold(pc.cyan(slot.name))} ${pc.dim(`(${slot.type}, ${slot.credits} credits)`)}`);
+
+    const dayMap: Record<string, number[]> = {};
+    for (const p of slot.periods) {
+      if (!dayMap[p.day]) dayMap[p.day] = [];
+      dayMap[p.day]!.push(p.period);
+    }
+
+    for (const [day, periods] of Object.entries(dayMap)) {
+      console.log(`  ${pc.blue("•")} ${pc.yellow(day)}: ${formatPeriodRanges(periods)}`);
+    }
+    console.log();
+  });
+
+slotCommand
   .command("check <slot_name>")
   .description("Check if a specific slot clashes with your saved schedule")
   .action(async (slotName) => {

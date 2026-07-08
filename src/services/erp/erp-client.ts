@@ -1,5 +1,11 @@
 import { ErpSession } from "./session.js";
 
+const isDebug = () =>
+    process.env.ERP_DEBUG === "1" || process.env.ERP_DEBUG === "true";
+const dbg = (...args: unknown[]) => {
+    if (isDebug()) console.log("\x1b[2m[debug]", ...args, "\x1b[0m");
+};
+
 export class ErpClient{
     private session : ErpSession;
     private baseUrl:string;
@@ -28,11 +34,20 @@ export class ErpClient{
             headers["Cookie"] = cookieHeader;
         }
 
+        dbg(`→ ${options.method ?? "GET"} ${url}`);
+        dbg(`  cookies sent: ${cookieHeader || "(none)"}`);
+
         const response = await fetch(url, {
             ...options,
             headers,
             redirect:"manual",
         });
+
+        dbg(`← ${response.status} ${response.statusText}`);
+        const loc = response.headers.get("Location");
+        if (loc) dbg(`  location: ${loc}`);
+        const setCookie = response.headers.get("set-cookie");
+        if (setCookie) dbg(`  set-cookie: ${setCookie}`);
 
         this.session.setCookiesFromResponse(response);
         return response;
@@ -161,6 +176,8 @@ export class ErpClient{
         answer:string,
         otp:string
     ):Promise<string>{
+        dbg(`authenticate(): otp="${otp}" (len=${otp.length}), sessionToken-len=${this.sessionToken.length}, requestedUrl="${this.requestedUrl}"`);
+        dbg(`  answer-len=${answer.length} (first char: '${answer[0] ?? ""}')`);
         const url = `${this.baseUrl}/SSOAdministration/auth.htm`
         const body =  new URLSearchParams({
             user_id: rollNumber,
