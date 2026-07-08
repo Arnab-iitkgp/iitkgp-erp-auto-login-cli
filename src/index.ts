@@ -9,6 +9,7 @@ import { statusCommand, statusAction } from "./commands/status.js";
 import { slotCommand, slotMenu } from "./commands/slot.js";
 import { guideCommand, renderGuide } from "./commands/guide.js";
 import { devnoteCommand, renderDevnote } from "./commands/devnote.js";
+import { openCommand } from "./commands/open.js";
 import { banner } from "./utils/banner.js";
 
 const program = new Command();
@@ -25,6 +26,7 @@ program.addCommand(statusCommand);
 program.addCommand(slotCommand);
 program.addCommand(guideCommand);
 program.addCommand(devnoteCommand);
+program.addCommand(openCommand);
 
 async function main() {
   if (process.argv.length === 2) {
