@@ -566,10 +566,28 @@
     );
   }
 
-  // Run automatically when page is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", runAutoLogin);
-  } else {
+  // --- Tab Visibility Guard ---
+  // Only run auto-login when the tab is actually in the foreground.
+  // If the page loads in a background tab (or the browser wakes from sleep
+  // while a different tab is active), we defer until the user switches to
+  // this tab. The flag prevents a second run if the tab is hidden/shown again.
+  let autoLoginFired = false;
+
+  function maybeRunAutoLogin() {
+    if (autoLoginFired) return;
+    if (document.visibilityState !== "visible") return;
+    autoLoginFired = true;
     runAutoLogin();
   }
+
+  // Run as soon as DOM is ready AND tab is visible
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", maybeRunAutoLogin);
+  } else {
+    maybeRunAutoLogin();
+  }
+
+  // If the tab was in the background when the page loaded, wait for it to
+  // come to the foreground before triggering auto-login.
+  document.addEventListener("visibilitychange", maybeRunAutoLogin);
 })();

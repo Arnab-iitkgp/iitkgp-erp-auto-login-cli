@@ -97,30 +97,79 @@
 
         <div class="summary-divider"></div>
 
-        <!-- Quick Launch Shortcut Row -->
-        <div class="summary-row">
-          <div class="summary-icon-box">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="20" height="16" x="2" y="4" rx="2"/>
-              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
-            </svg>
+        <!-- Quick Shortcuts Section -->
+        <div class="shortcuts-section">
+          <!-- Header Row with Master Toggle -->
+          <div class="summary-row shortcuts-header-row">
+            <div class="summary-icon-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
+              </svg>
+            </div>
+            <div class="summary-content">
+              <span class="summary-label">QUICK SHORTCUTS</span>
+              <span class="shortcuts-subtext" id="hotkeyStatusDesc">Active Global Hotkeys</span>
+            </div>
+            <label class="switch switch-sm" title="Toggle Quick Launch Hotkeys">
+              <input type="checkbox" id="hotkeyToggle" checked>
+              <span class="slider round"></span>
+            </label>
           </div>
-          <div class="summary-content">
-            <span class="summary-label">QUICK LAUNCH</span>
-            <span class="summary-val" id="dashHotkeyText">
-              <span class="hotkey-group">
-                <kbd class="hotkey-key" id="kbdMod1">Alt</kbd>
-                <span class="hotkey-sep">+</span>
-                <kbd class="hotkey-key">Shift</kbd>
-                <span class="hotkey-sep">+</span>
-                <kbd class="hotkey-key">E</kbd>
-              </span>
-            </span>
+
+          <!-- Interactive Shortcuts Mini-List -->
+          <div class="shortcuts-list" id="shortcutsList">
+            <!-- 1. ERP Home -->
+            <div class="shortcut-item" id="quickLaunchHome" role="button" tabindex="0" title="Click to open ERP Home">
+              <span class="shortcut-title">ERP Home</span>
+              <div class="shortcut-item-right">
+                <span class="hotkey-group" id="hotkeyHome">
+                  <kbd class="hotkey-key">Alt</kbd>
+                  <span class="hotkey-sep">+</span>
+                  <kbd class="hotkey-key">X</kbd>
+                </span>
+                <svg class="shortcut-launch-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 2. CDC Notice Board -->
+            <div class="shortcut-item" id="quickLaunchNotice" role="button" tabindex="0" title="Click to open CDC Notice Board">
+              <span class="shortcut-title">CDC Notices</span>
+              <div class="shortcut-item-right">
+                <span class="hotkey-group" id="hotkeyNotice">
+                  <kbd class="hotkey-key">Alt</kbd>
+                  <span class="hotkey-sep">+</span>
+                  <kbd class="hotkey-key">C</kbd>
+                </span>
+                <svg class="shortcut-launch-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 3. CDC Placement/Internship -->
+            <div class="shortcut-item" id="quickLaunchCdcApp" role="button" tabindex="0" title="Click to open CDC Applications">
+              <span class="shortcut-title">CDC Applications</span>
+              <div class="shortcut-item-right">
+                <span class="hotkey-group" id="hotkeyCdcApp">
+                  <kbd class="hotkey-key">Alt</kbd>
+                  <span class="hotkey-sep">+</span>
+                  <kbd class="hotkey-key">Z</kbd>
+                </span>
+                <svg class="shortcut-launch-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </div>
+            </div>
           </div>
-          <label class="switch switch-sm" title="Toggle Quick Launch Shortcut">
-            <input type="checkbox" id="hotkeyToggle" checked>
-            <span class="slider round"></span>
-          </label>
         </div>
       </div>
 
@@ -458,6 +507,20 @@
               <div class="guide-desc">Saved strictly in Chrome local storage. Zero telemetry.</div>
             </div>
           </div>
+
+          <!-- Point 4 -->
+          <div class="guide-item">
+            <div class="guide-icon-dot">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"/>
+                <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
+              </svg>
+            </div>
+            <div class="guide-text">
+              <div class="guide-name">Global Hotkeys</div>
+              <div class="guide-desc"><code>Alt+X</code> Home, <code>Alt+C</code> Notices, <code>Alt+Z</code> CDC Apps.</div>
+            </div>
+          </div>
         </div>
 
         <button type="button" id="helpGotItBtn" class="guide-done-btn">Got it</button>
@@ -478,6 +541,13 @@
         </div>
 
         <div class="faq-list">
+          <div class="faq-item">
+            <div class="faq-q">What are the quick launch hotkeys?</div>
+            <div class="faq-a">
+              Press <strong>Alt+X</strong> for ERP Home, <strong>Alt+C</strong> for the CDC Notice Board, and <strong>Alt+Z</strong> for CDC Placement/Internship forms. Rebind anytime in browser shortcuts.
+            </div>
+          </div>
+
           <div class="faq-item">
             <div class="faq-q">Gmail OTP not detecting or timing out?</div>
             <div class="faq-a">

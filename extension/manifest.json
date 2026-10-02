@@ -32,10 +32,24 @@
   "commands": {
     "quick_launch_erp": {
       "suggested_key": {
-        "default": "Alt+Shift+E",
+        "default": "Alt+X",
         "mac": "Command+Shift+E"
       },
       "description": "Quick launch and auto-login to IIT KGP ERP"
+    },
+    "quick_launch_cdc": {
+      "suggested_key": {
+        "default": "Alt+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Jump to CDC Notice Board"
+    },
+    "quick_launch_cdc_app": {
+      "suggested_key": {
+        "default": "Alt+Z",
+        "mac": "Command+Shift+Z"
+      },
+      "description": "Jump to CDC Placement/Internship Applications"
     }
   },
   "action": {

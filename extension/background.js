@@ -6,6 +6,11 @@
 const OTP_SUBJECT_REGEX = /OTP for Sign In in ERP Portal of IIT Kharagpur/i;
 const OTP_CODE_REGEX = /\b(\d{6})\b/;
 
+// Session keep-alive: ping ERP every 15 min to prevent idle logout
+const SESSION_KEEPALIVE_ALARM = "kgp_erp_session_ping";
+const KEEPALIVE_INTERVAL_MINUTES = 15;
+const KEEPALIVE_URL = "https://erp.iitkgp.ac.in/IIT_ERP3/";
+
 // Cache for active polling jobs: { [tabId]: { aborted: boolean } }
 const activePolls = new Map();
 
@@ -314,22 +319,93 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.commands.onCommand.addListener((command) => {
   if (command === "quick_launch_erp") {
     chrome.storage.local.get(["hotkeyEnabled"], (data) => {
-      // Default to enabled if not explicitly toggled off
       if (data.hotkeyEnabled === false) return;
 
       const erpUrl = "https://erp.iitkgp.ac.in/IIT_ERP3/";
 
-      // Check if an ERP tab is already open across browser windows
       chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
         if (tabs && tabs.length > 0) {
           const existingTab = tabs[0];
-          chrome.windows.update(existingTab.windowId, { focused: true }, () => {
-            chrome.tabs.update(existingTab.id, { active: true });
-          });
+          // Always navigate to home — even if already on a different ERP page
+          chrome.tabs.update(existingTab.id, { active: true, url: erpUrl });
+          chrome.windows.update(existingTab.windowId, { focused: true });
         } else {
           chrome.tabs.create({ url: erpUrl });
         }
       });
     });
+  }
+
+  // Alt+C — Jump straight to CDC Notice Board (always fresh)
+  if (command === "quick_launch_cdc") {
+    chrome.storage.local.get(["hotkeyEnabled"], (data) => {
+      if (data.hotkeyEnabled === false) return;
+
+      const cdcNoticeUrl = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp";
+
+      chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
+        if (tabs && tabs.length > 0) {
+          const tab = tabs[0];
+          chrome.tabs.update(tab.id, { active: true, url: cdcNoticeUrl });
+          chrome.windows.update(tab.windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: cdcNoticeUrl });
+        }
+      });
+    });
+  }
+
+  // Alt+Z — Jump to CDC Placement/Internship Applications (always fresh)
+  if (command === "quick_launch_cdc_app") {
+    chrome.storage.local.get(["hotkeyEnabled"], (data) => {
+      if (data.hotkeyEnabled === false) return;
+
+      const cdcAppUrl = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp";
+
+      chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
+        if (tabs && tabs.length > 0) {
+          const tab = tabs[0];
+          chrome.tabs.update(tab.id, { active: true, url: cdcAppUrl });
+          chrome.windows.update(tab.windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: cdcAppUrl });
+        }
+      });
+    });
+  }
+});
+
+// --- ERP Session Keep-Alive ---
+// Registers a repeating alarm to prevent the ERP server from expiring
+// an idle session. Only fires the ping when an ERP tab is actually open.
+function registerKeepAliveAlarm() {
+  chrome.alarms.get(SESSION_KEEPALIVE_ALARM, (existing) => {
+    if (!existing) {
+      chrome.alarms.create(SESSION_KEEPALIVE_ALARM, {
+        delayInMinutes: KEEPALIVE_INTERVAL_MINUTES,
+        periodInMinutes: KEEPALIVE_INTERVAL_MINUTES,
+      });
+    }
+  });
+}
+
+chrome.runtime.onInstalled.addListener(registerKeepAliveAlarm);
+chrome.runtime.onStartup.addListener(registerKeepAliveAlarm);
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== SESSION_KEEPALIVE_ALARM) return;
+
+  const erpTabs = await chrome.tabs.query({ url: "https://erp.iitkgp.ac.in/*" });
+  if (!erpTabs.length) return; // No ERP tab open — nothing to keep alive
+
+  try {
+    const res = await fetch(KEEPALIVE_URL, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+    console.log(`[ERP Background] Session ping OK (${res.status})`);
+  } catch (err) {
+    console.warn("[ERP Background] Session ping failed:", err.message);
   }
 });

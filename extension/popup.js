@@ -43,7 +43,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Quick Launch Hotkey Elements ---
   const hotkeyToggle = document.getElementById("hotkeyToggle");
-  const dashHotkeyText = document.getElementById("dashHotkeyText");
+  const hotkeyStatusDesc = document.getElementById("hotkeyStatusDesc");
+  const shortcutsList = document.getElementById("shortcutsList");
+  const hotkeyHome = document.getElementById("hotkeyHome");
+  const hotkeyNotice = document.getElementById("hotkeyNotice");
+  const hotkeyCdcApp = document.getElementById("hotkeyCdcApp");
+  const quickLaunchHome = document.getElementById("quickLaunchHome");
+  const quickLaunchNotice = document.getElementById("quickLaunchNotice");
+  const quickLaunchCdcApp = document.getElementById("quickLaunchCdcApp");
   const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0 || navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
 
   // --- Unlock Settings Modal Elements ---
@@ -170,22 +177,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Hotkey UI & Toggle Handling ---
   function updateHotkeyUI(isEnabled) {
-    if (!dashHotkeyText) return;
-    if (isEnabled) {
-      const modKey = isMac ? "⌘" : "Alt";
-      dashHotkeyText.innerHTML = `
-        <span class="hotkey-group">
-          <kbd class="hotkey-key">${modKey}</kbd>
-          <span class="hotkey-sep">+</span>
-          <kbd class="hotkey-key">Shift</kbd>
-          <span class="hotkey-sep">+</span>
-          <kbd class="hotkey-key">E</kbd>
-        </span>
-      `;
-      dashHotkeyText.style.opacity = "1";
-    } else {
-      dashHotkeyText.innerHTML = `<span class="hotkey-disabled">Disabled</span>`;
-      dashHotkeyText.style.opacity = "0.6";
+    if (shortcutsList) {
+      if (isEnabled) {
+        shortcutsList.classList.remove("shortcuts-disabled");
+      } else {
+        shortcutsList.classList.add("shortcuts-disabled");
+      }
+    }
+
+    if (hotkeyStatusDesc) {
+      if (isEnabled) {
+        hotkeyStatusDesc.textContent = "Active Global Hotkeys";
+        hotkeyStatusDesc.classList.remove("disabled");
+      } else {
+        hotkeyStatusDesc.textContent = "Hotkeys Paused (Click to Open)";
+        hotkeyStatusDesc.classList.add("disabled");
+      }
+    }
+
+    if (hotkeyHome) {
+      hotkeyHome.innerHTML = isMac
+        ? `<kbd class="hotkey-key">⌘</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">Shift</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">E</kbd>`
+        : `<kbd class="hotkey-key">Alt</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">X</kbd>`;
+    }
+    if (hotkeyNotice) {
+      hotkeyNotice.innerHTML = isMac
+        ? `<kbd class="hotkey-key">⌘</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">Shift</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">C</kbd>`
+        : `<kbd class="hotkey-key">Alt</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">C</kbd>`;
+    }
+    if (hotkeyCdcApp) {
+      hotkeyCdcApp.innerHTML = isMac
+        ? `<kbd class="hotkey-key">⌘</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">Shift</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">Z</kbd>`
+        : `<kbd class="hotkey-key">Alt</kbd><span class="hotkey-sep">+</span><kbd class="hotkey-key">Z</kbd>`;
     }
   }
 
@@ -194,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const isEnabled = hotkeyToggle.checked;
       chrome.storage.local.set({ hotkeyEnabled: isEnabled }, () => {
         updateHotkeyUI(isEnabled);
-        showToast(isEnabled ? "Quick launch shortcut enabled" : "Quick launch shortcut disabled", "info");
+        showToast(isEnabled ? "Quick launch shortcuts enabled" : "Quick launch shortcuts paused", "info");
       });
     });
   }
@@ -545,9 +568,39 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================================================================
   // Dashboard Action Handlers
   // =========================================================================
+  function navigateOrOpenTab(url) {
+    chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
+      if (tabs && tabs.length > 0) {
+        const existingTab = tabs[0];
+        chrome.tabs.update(existingTab.id, { active: true, url: url });
+        chrome.windows.update(existingTab.windowId, { focused: true });
+      } else {
+        chrome.tabs.create({ url: url });
+      }
+    });
+  }
+
   if (launchErpBtn) {
     launchErpBtn.addEventListener("click", () => {
-      chrome.tabs.create({ url: "https://erp.iitkgp.ac.in/IIT_ERP3/" });
+      navigateOrOpenTab("https://erp.iitkgp.ac.in/IIT_ERP3/");
+    });
+  }
+
+  if (quickLaunchHome) {
+    quickLaunchHome.addEventListener("click", () => {
+      navigateOrOpenTab("https://erp.iitkgp.ac.in/IIT_ERP3/");
+    });
+  }
+
+  if (quickLaunchNotice) {
+    quickLaunchNotice.addEventListener("click", () => {
+      navigateOrOpenTab("https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp");
+    });
+  }
+
+  if (quickLaunchCdcApp) {
+    quickLaunchCdcApp.addEventListener("click", () => {
+      navigateOrOpenTab("https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp");
     });
   }
 

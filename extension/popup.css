@@ -841,6 +841,98 @@ input:checked + .slider:before {
   margin: 0 12px;
 }
 
+/* --------------------------------------------------------------------------
+   Quick Shortcuts Section & Interactive Destinations
+   -------------------------------------------------------------------------- */
+.shortcuts-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.shortcuts-header-row {
+  height: 38px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.shortcuts-subtext {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.shortcuts-subtext.disabled {
+  color: #64748b;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 6px 7px 6px;
+  gap: 2px;
+  background: rgba(8, 15, 25, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  transition: opacity 0.2s ease;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 29px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+.shortcut-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.shortcut-item:active {
+  background: rgba(59, 130, 246, 0.18);
+  transform: scale(0.99);
+}
+
+.shortcut-title {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #cbd5e1;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.shortcut-item:hover .shortcut-title {
+  color: #ffffff;
+}
+
+.shortcut-item-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.shortcut-launch-icon {
+  color: #64748b;
+  opacity: 0;
+  transform: translateX(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.shortcut-item:hover .shortcut-launch-icon {
+  opacity: 1;
+  color: #93c5fd;
+  transform: translateX(0);
+}
+
+.shortcuts-disabled .hotkey-group {
+  opacity: 0.45;
+  filter: grayscale(0.8);
+}
+
 /* Edit Mode Bar */
 .edit-mode-bar {
   display: flex;
