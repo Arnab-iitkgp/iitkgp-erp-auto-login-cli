@@ -41,3 +41,6 @@ desktop.ini
 
 # pnpm
 .pnp.*
+
+# Reference UI
+extension/reference UI/

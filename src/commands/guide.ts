@@ -42,14 +42,6 @@ const GUIDE: Section[] = [
           { cmd: "erp login --debug", note: "verbose request/response logging" },
         ],
       },
-      {
-        name: "erp open <target>",
-        purpose: "Open a specific ERP page directly in your browser, skipping the click-through-menus navigation. Requires an active session.",
-        examples: [
-          { cmd: "erp open reg", note: "subject registration" },
-          { cmd: "erp open home", note: "dashboard" },
-        ],
-      },
     ],
   },
   {

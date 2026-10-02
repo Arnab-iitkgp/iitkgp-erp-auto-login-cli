@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERP Auto-Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-card">
+    <!-- Floating Dusk Building Backdrop (Zero Separator, Seamless Transition) -->
+    <div class="hero-backdrop"></div>
+    
+    <!-- Hero Header with Dusk Building Backdrop -->
+    <header class="hero-header">
+      <div class="hero-content">
+        <!-- Brand: Exact User Icon without round corners & Titles -->
+        <div class="brand-group">
+          <div class="app-logo-box">
+            <img src="icons/logo.png" class="app-logo-img" alt="ERP Auto-Login Logo" />
+          </div>
+          <div class="brand-text">
+            <h1 class="app-title">ERP Auto-Login</h1>
+            <div class="app-sub-iit">IIT KHARAGPUR</div>
+          </div>
+        </div>
+
+        <!-- Toggle Switch (Exact Match to Reference: Disabled / Enabled) -->
+        <div class="toggle-column">
+          <label class="switch" title="Toggle Auto-Login">
+            <input type="checkbox" id="autoLoginToggle" checked>
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label" id="toggleStatusLabel">Enabled</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 1. ACTIVE DASHBOARD VIEW (Shown when credentials exist) -->
+    <main id="activeDashboardView" class="dashboard-body" style="display: none;">
+      <!-- Status Pill -->
+      
+
+      <!-- Configured Account Summary Card -->
+      <div class="summary-card">
+        <!-- Roll Row -->
+        <div class="summary-row">
+          <div class="summary-icon-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">ROLL NUMBER</span>
+            <span class="summary-val" id="dashRoll">--</span>
+          </div>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <!-- Linked Email Row -->
+        <div class="summary-row">
+          <div class="summary-icon-box" id="dashEmailIconBox">
+            <svg id="dashGoogleLogo" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.17 0 9.97 0 12s.45 3.83 1.25 5.42l4.03-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+            <img id="dashKgpLogo" src="icons/logo.png" style="display:none; width:16px; height:16px; object-fit:contain;" alt="IIT KGP" />
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">OTP EMAIL</span>
+            <span class="summary-val" id="dashEmail">--</span>
+          </div>
+          <span class="summary-badge" id="dashEmailBadge">✓ Verified</span>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <!-- Security Questions Row -->
+        <div class="summary-row">
+          <div class="summary-icon-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">SECURITY QUESTIONS</span>
+            <span class="summary-val" id="dashQuestions">3 Configured</span>
+          </div>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <!-- Quick Launch Shortcut Row -->
+        <div class="summary-row">
+          <div class="summary-icon-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2"/>
+              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
+            </svg>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">QUICK LAUNCH</span>
+            <span class="summary-val" id="dashHotkeyText">
+              <span class="hotkey-group">
+                <kbd class="hotkey-key" id="kbdMod1">Alt</kbd>
+                <span class="hotkey-sep">+</span>
+                <kbd class="hotkey-key">Shift</kbd>
+                <span class="hotkey-sep">+</span>
+                <kbd class="hotkey-key">E</kbd>
+              </span>
+            </span>
+          </div>
+          <label class="switch switch-sm" title="Toggle Quick Launch Shortcut">
+            <input type="checkbox" id="hotkeyToggle" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Launch ERP Primary Action Button -->
+      <button type="button" id="launchErpBtn" class="main-submit-btn">
+        <span>Launch ERP Portal</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </button>
+
+      <!-- Dashboard Footer Bar -->
+      <footer class="footer-bar">
+        <div class="footer-left">
+          <button type="button" id="settingsUnlockTriggerBtn" class="footer-link-btn" title="Edit credentials or reset configuration">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>Settings</span>
+          </button>
+          
+          <span class="footer-divider"></span>
+
+          <button type="button" class="footer-link-btn trigger-help-modal" title="How Auto-Login Works">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>Help</span>
+          </button>
+
+          <span class="footer-divider"></span>
+
+          <button type="button" class="footer-link-btn trigger-faq-modal" title="Troubleshooting & FAQs">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>FAQ</span>
+          </button>
+        </div>
+
+        <button type="button" class="footer-link-btn trigger-dark-mode-btn" title="Toggle ERP Dark Mode">
+          <svg class="theme-moon-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+          <span class="theme-btn-label">Dark</span>
+          <span class="theme-beta-badge">BETA</span>
+        </button>
+      </footer>
+    </main>
+
+    <!-- 2. SETUP / EDIT FORM VIEW (First run or after unlocking Settings) -->
+    <form id="settingsForm" class="form-body">
+      
+      <!-- Back to Dashboard Bar (shown only when editing existing credentials) -->
+      <div id="editModeBar" class="edit-mode-bar" style="display: none;">
+        <button type="button" id="backToDashBtn" class="back-link-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>Back to Dashboard</span>
+        </button>
+        <span class="edit-badge">Edit Mode</span>
+      </div>
+
+      <!-- 1. ERP CREDENTIALS -->
+      <section class="form-section">
+        <div class="section-label-row">
+          <span class="section-label">ERP CREDENTIALS</span>
+        </div>
+
+        <div class="credentials-card">
+          <!-- Roll Number Row -->
+          <div class="cred-row">
+            <div class="cred-icon-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <span class="cred-label">Roll Number</span>
+            <input type="text" id="erpRoll" class="cred-input" placeholder="e.g. 23CH10011" required autocomplete="off" spellcheck="false" />
+            <div class="cred-spacer"></div>
+          </div>
+
+          <div class="cred-divider"></div>
+
+          <!-- Password Row -->
+          <div class="cred-row">
+            <div class="cred-icon-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <span class="cred-label">ERP Password</span>
+            <input type="password" id="erpPassword" class="cred-input" placeholder="••••••••••••" required autocomplete="off" />
+            <button type="button" id="togglePasswordBtn" class="cred-eye-btn" title="Toggle visibility">
+              <svg id="eyeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. EMAIL FOR OTP (Gmail or Insti Webmail) -->
+      <section class="form-section">
+        <div class="section-label-row">
+          <span class="section-label">EMAIL FOR OTP (GMAIL OR INSTI)</span>
+          <div class="section-right-group">
+            <span class="email-status-pill" id="gmailStatusText">Ready</span>
+            <button type="button" id="checkGmailBtn" class="pill-detect-btn" title="Check if this email is logged in on this browser">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span>Check</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Crystal-Clear, Single-Field Email Input Box -->
+        <div class="email-input-card">
+          <!-- Dynamic Brand Badge: Google 'G' or IIT KGP Emblem -->
+          <div class="email-badge-wrap" id="emailBadgeWrap" title="Email account provider">
+            <svg id="googleSvgLogo" width="18" height="18" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.17 0 9.97 0 12s.45 3.83 1.25 5.42l4.03-3.15z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+            </svg>
+            <img id="kgpImgLogo" src="icons/logo.png" style="display:none; width:18px; height:18px; object-fit:contain;" alt="IIT KGP" />
+          </div>
+
+          <!-- Clear text input for typing email -->
+          <input type="email" id="gmailEmail" class="email-text-input" placeholder="name@gmail.com" autocomplete="off" spellcheck="false" />
+          <input type="hidden" id="gmailAccountIndex" value="0" />
+        </div>
+
+        <!-- Session Verification Note -->
+        <div class="session-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 14 14"/>
+          </svg>
+          <span>Account must be logged in on this browser. It's Safe</span>
+        </div>
+      </section>
+
+      <!-- 3. SECURITY QUESTIONS -->
+      <section class="form-section">
+        <div class="section-label-row">
+          <span class="section-label">SECURITY QUESTIONS</span>
+          <button type="button" id="fetchQuestionBtn" class="pill-detect-btn" title="Fetch all 3 questions from ERP in 1 click">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+            <span>Fetch All (3)</span>
+          </button>
+        </div>
+
+        <div id="qaContainer" class="qa-container">
+          <!-- Row 1 -->
+          <div class="qa-split-row">
+            <div class="qa-question-box">
+              <input type="text" class="qa-question-input" placeholder="Security Question 1" value="" />
+            </div>
+            <div class="qa-answer-box">
+              <input type="text" class="qa-answer-input" placeholder="Your answer" value="" />
+            </div>
+          </div>
+
+          <!-- Row 2 -->
+          <div class="qa-split-row">
+            <div class="qa-question-box">
+              <input type="text" class="qa-question-input" placeholder="Security Question 2" value="" />
+            </div>
+            <div class="qa-answer-box">
+              <input type="text" class="qa-answer-input" placeholder="Your answer" value="" />
+            </div>
+          </div>
+
+          <!-- Row 3 -->
+          <div class="qa-split-row">
+            <div class="qa-question-box">
+              <input type="text" class="qa-question-input" placeholder="Security Question 3" value="" />
+            </div>
+            <div class="qa-answer-box">
+              <input type="text" class="qa-answer-input" placeholder="Your answer" value="" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Primary Action Button -->
+      <button type="submit" id="saveBtn" class="main-submit-btn">
+        <span>Save &amp; Enable Auto-Login</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/>
+          <path d="m12 5 7 7-7 7"/>
+        </svg>
+      </button>
+
+      <div id="statusMessage" class="toast-status"></div>
+
+      <!-- Setup Footer Bar -->
+      <footer class="footer-bar">
+        <div class="footer-left">
+          <button type="button" class="footer-link-btn trigger-help-modal" title="How Auto-Login Works">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>Help</span>
+          </button>
+
+          <span class="footer-divider"></span>
+
+          <button type="button" class="footer-link-btn trigger-faq-modal" title="Troubleshooting & FAQs">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>FAQ</span>
+          </button>
+        </div>
+
+        <button type="button" class="footer-link-btn trigger-dark-mode-btn" title="Toggle ERP Dark Mode">
+          <svg class="theme-moon-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+          <span class="theme-btn-label">Dark</span>
+          <span class="theme-beta-badge">BETA</span>
+        </button>
+      </footer>
+
+    </form>
+
+    <!-- 3. UNLOCK SETTINGS MODAL (Professional Minimalist Auth Prompt) -->
+    <div id="unlockModal" class="modal-backdrop" style="display: none;">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-title-row">
+            <span class="auth-title">Verify ERP Password</span>
+            <button type="button" id="closeUnlockModalBtn" class="sheet-close-btn" title="Close">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <p class="auth-subtitle">Enter your password to unlock and edit settings.</p>
+        </div>
+
+        <form id="unlockForm" class="auth-form">
+          <div class="auth-input-group">
+            <input type="password" id="unlockPasswordInput" class="auth-input" placeholder="ERP Password" required autocomplete="off" />
+            <button type="submit" id="confirmUnlockBtn" class="auth-submit-arrow" title="Verify password">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </button>
+          </div>
+          <div id="unlockErrorMsg" class="auth-error-msg" style="display: none;">Incorrect password. Please try again.</div>
+        </form>
+
+        <div class="auth-actions-row">
+          <button type="button" id="resetDataBtn" class="auth-danger-text-btn" title="Clear all stored credentials">Reset all data</button>
+          <button type="button" id="cancelUnlockBtn" class="auth-text-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. IN-APP HELP MODAL (Ultra-Clean 3-Point Cheat Sheet) -->
+    <div id="helpModal" class="modal-backdrop" style="display: none;">
+      <div class="guide-card">
+        <div class="guide-header">
+          <h3 class="guide-title">How It Works</h3>
+          <button type="button" id="closeHelpModalBtn" class="sheet-close-btn" title="Close">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="guide-list">
+          <!-- Point 1 -->
+          <div class="guide-item">
+            <div class="guide-icon-dot">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="7.5" cy="15.5" r="4.5"/>
+                <path d="m21 3-8.5 8.5"/>
+                <path d="M15.5 8.5 17 10"/>
+              </svg>
+            </div>
+            <div class="guide-text">
+              <div class="guide-name">Setup credentials</div>
+              <div class="guide-desc">Save your Roll, Password &amp; verify your OTP email.</div>
+            </div>
+          </div>
+
+          <!-- Point 2 -->
+          <div class="guide-item">
+            <div class="guide-icon-dot">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
+            <div class="guide-text">
+              <div class="guide-name">1-Click Auto-Login</div>
+              <div class="guide-desc">Opening ERP fills credentials and injects OTP automatically.</div>
+            </div>
+          </div>
+
+          <!-- Point 3 -->
+          <div class="guide-item">
+            <div class="guide-icon-dot">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="guide-text">
+              <div class="guide-name">Local &amp; private</div>
+              <div class="guide-desc">Saved strictly in Chrome local storage. Zero telemetry.</div>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" id="helpGotItBtn" class="guide-done-btn">Got it</button>
+      </div>
+    </div>
+
+    <!-- 5. IN-APP FAQ MODAL (Ultra-Clean Minimalist) -->
+    <div id="faqModal" class="modal-backdrop" style="display: none;">
+      <div class="guide-card faq-card">
+        <div class="guide-header">
+          <h3 class="guide-title">FAQ &amp; Troubleshooting</h3>
+          <button type="button" id="closeFaqModalBtn" class="sheet-close-btn" title="Close">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <div class="faq-q">Gmail OTP not detecting or timing out?</div>
+            <div class="faq-a">
+              If multiple Google accounts are logged in, Google can reorder slots. In Settings, click <strong>Check</strong> next to <em>EMAIL FOR OTP</em> to link your active mailbox.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">What if ERP rejects an OTP?</div>
+            <div class="faq-a">
+              Auto-login stops after <strong>2 tries</strong> and ignores duplicate OTPs to prevent infinite loops. If it halts, click <em>Send OTP</em> on ERP and enter it manually.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Security question not auto-filling?</div>
+            <div class="faq-a">
+              Click <strong>Fetch All (3)</strong> in Settings. ERP rotates 3 questions; once all 3 are saved, the extension answers whichever one appears on login.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Where are my credentials saved?</div>
+            <div class="faq-a">
+              Stored 100% locally on your machine in Chrome's encrypted storage. Zero external servers, zero telemetry.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-footer-row">
+          <a href="https://github.com/Arnab-iitkgp/erp-auto-login-cli/issues" target="_blank" rel="noopener noreferrer" id="faqIssueLink" class="faq-issue-link">
+            Still a problem? Open an issue &rarr;
+          </a>
+          <button type="button" id="faqGotItBtn" class="faq-done-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. SLEEK IN-APP TOAST NOTIFICATION -->
+    <div id="toastNotification" class="toast-popup" style="display: none;">
+      <div class="toast-icon-wrap" id="toastIconWrap">
+        <!-- SVG injected by JS -->
+      </div>
+      <span id="toastMessageText" class="toast-message-text"></span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

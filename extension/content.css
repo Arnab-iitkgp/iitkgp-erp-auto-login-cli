@@ -1,0 +1,673 @@
+/* KGP ERP Auto-Login Overlay Styles */
+#kgp-auto-login-banner {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #f8fafc;
+  padding: 12px 18px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
+  font-size: 13px;
+  line-height: 1.4;
+  transition: all 0.3s ease;
+  animation: kgpSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes kgpSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#kgp-auto-login-banner.banner-success {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(15, 33, 24, 0.95);
+}
+
+#kgp-auto-login-banner.banner-warning {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(36, 26, 12, 0.96);
+}
+
+#kgp-auto-login-banner.banner-error {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(38, 16, 16, 0.96);
+}
+
+.kgp-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kgp-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #38bdf8;
+}
+
+.kgp-banner-logo-wrap {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.kgp-banner-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.kgp-banner-appname {
+  font-weight: 700;
+  font-size: 13.5px;
+  background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.kgp-banner-badge {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.kgp-banner-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.kgp-banner-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.kgp-banner-body {
+  color: #cbd5e1;
+  font-size: 12.5px;
+}
+
+.kgp-banner-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.kgp-progress-bar-bg {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.kgp-progress-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 3px;
+  transition: width 1s linear;
+}
+
+/* Spinner */
+.kgp-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(56, 189, 248, 0.25);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: kgpSpin 0.7s linear infinite;
+}
+
+@keyframes kgpSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Highlighting OTP input upon manual fallback */
+.kgp-input-highlight {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25) !important;
+  animation: kgpPulseBorder 1.5s infinite alternate !important;
+}
+
+@keyframes kgpPulseBorder {
+  from {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  }
+  to {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.4);
+  }
+}
+
+/* ==========================================================================
+   IIT KGP ERP Dark Mode Theme
+   Precision Dusk Theme | Seamless, High-Contrast & Night-Friendly
+   ========================================================================== */
+
+/* 1. Base Document & Backgrounds - Zero Transition to Eliminate White Flash */
+html.kgp-dark-mode,
+html.kgp-dark-mode body {
+  background-color: #0b131e !important;
+  color: #e2e8f0 !important;
+}
+
+/* 2. Top Navigation, Headers & Secondary Menu Bar */
+html.kgp-dark-mode .navbar,
+html.kgp-dark-mode .navbar-default,
+html.kgp-dark-mode .navbar-inverse,
+html.kgp-dark-mode .navbar-static-top,
+html.kgp-dark-mode .navbar-fixed-top,
+html.kgp-dark-mode .main-header,
+html.kgp-dark-mode header,
+html.kgp-dark-mode .top-nav,
+html.kgp-dark-mode .menubar,
+html.kgp-dark-mode #menubar,
+html.kgp-dark-mode .menu_bar,
+html.kgp-dark-mode #menu_bar,
+html.kgp-dark-mode .menu-bar,
+html.kgp-dark-mode #menu-bar,
+html.kgp-dark-mode #menutab,
+html.kgp-dark-mode .menutab,
+html.kgp-dark-mode #cssmenu,
+html.kgp-dark-mode .cssmenu,
+html.kgp-dark-mode #cssmenu > ul,
+html.kgp-dark-mode .cssmenu > ul,
+html.kgp-dark-mode #main-menu,
+html.kgp-dark-mode .main-menu,
+html.kgp-dark-mode #header,
+html.kgp-dark-mode .header,
+html.kgp-dark-mode .page-header,
+html.kgp-dark-mode .page-head,
+html.kgp-dark-mode .page-header-menu,
+html.kgp-dark-mode .page-container,
+html.kgp-dark-mode .hor-menu,
+html.kgp-dark-mode .horizontal-menu,
+html.kgp-dark-mode .sub-header,
+html.kgp-dark-mode .sub-navbar,
+html.kgp-dark-mode .subnav,
+html.kgp-dark-mode #subnav,
+html.kgp-dark-mode .nav-tabs,
+html.kgp-dark-mode .nav-pills,
+html.kgp-dark-mode .navigation,
+html.kgp-dark-mode #navigation,
+html.kgp-dark-mode .navbar-collapse,
+html.kgp-dark-mode .nav-collapse,
+html.kgp-dark-mode :has([placeholder*="Search" i]),
+html.kgp-dark-mode :has([value*="Search" i]),
+html.kgp-dark-mode :has([id*="search" i]),
+html.kgp-dark-mode :has(> [value*="Search Menu" i]),
+html.kgp-dark-mode :has(input[type="search"]),
+html.kgp-dark-mode div:has(a[href*="Academic" i]),
+html.kgp-dark-mode div:has(a[href*="CDC" i]) {
+  background-color: #070e17 !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Clear white background on all child items inside header/menu bars */
+html.kgp-dark-mode :has([value*="Search" i]) ul,
+html.kgp-dark-mode :has([value*="Search" i]) li,
+html.kgp-dark-mode :has([value*="Search" i]) div,
+html.kgp-dark-mode :has([placeholder*="Search" i]) ul,
+html.kgp-dark-mode :has([placeholder*="Search" i]) li,
+html.kgp-dark-mode :has([placeholder*="Search" i]) div,
+html.kgp-dark-mode .hor-menu ul,
+html.kgp-dark-mode .hor-menu li,
+html.kgp-dark-mode .page-header-menu ul,
+html.kgp-dark-mode .page-header-menu li,
+html.kgp-dark-mode .navbar-collapse ul,
+html.kgp-dark-mode .navbar-collapse li {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Secondary Navigation Tabs (Academic, Accounts, Guest House, CDC) */
+html.kgp-dark-mode .menubar a,
+html.kgp-dark-mode #menubar a,
+html.kgp-dark-mode .menu_bar a,
+html.kgp-dark-mode #menu_bar a,
+html.kgp-dark-mode .menu-bar a,
+html.kgp-dark-mode #menutab a,
+html.kgp-dark-mode .menutab a,
+html.kgp-dark-mode #cssmenu a,
+html.kgp-dark-mode .cssmenu a,
+html.kgp-dark-mode .navbar a,
+html.kgp-dark-mode .navbar-brand,
+html.kgp-dark-mode .navbar-nav > li > a,
+html.kgp-dark-mode .nav-tabs > li > a,
+html.kgp-dark-mode .nav-pills > li > a,
+html.kgp-dark-mode .hor-menu a,
+html.kgp-dark-mode .page-header-menu a {
+  color: #94a3b8 !important;
+  background-color: transparent !important;
+}
+
+html.kgp-dark-mode .menubar a:hover,
+html.kgp-dark-mode .menu_bar a:hover,
+html.kgp-dark-mode #cssmenu a:hover,
+html.kgp-dark-mode .navbar-nav > li > a:hover,
+html.kgp-dark-mode .nav-tabs > li > a:hover,
+html.kgp-dark-mode .hor-menu a:hover,
+html.kgp-dark-mode .page-header-menu a:hover {
+  background-color: rgba(56, 189, 248, 0.1) !important;
+  color: #38bdf8 !important;
+}
+
+/* Active Selected Tab (e.g. Selected Academic Tab) */
+html.kgp-dark-mode .nav-tabs > li.active > a,
+html.kgp-dark-mode .nav-pills > li.active > a,
+html.kgp-dark-mode .menubar .active,
+html.kgp-dark-mode .menu_bar .active,
+html.kgp-dark-mode #cssmenu .active > a,
+html.kgp-dark-mode .navbar-nav > .active > a,
+html.kgp-dark-mode .hor-menu .active > a,
+html.kgp-dark-mode .page-header-menu .active > a {
+  background-color: rgba(56, 189, 248, 0.16) !important;
+  color: #38bdf8 !important;
+  border-radius: 4px !important;
+}
+
+/* Override Any Hardcoded White / Off-White Elements & Inline Styles in ERP */
+html.kgp-dark-mode [style*="background: #fff"],
+html.kgp-dark-mode [style*="background:#fff"],
+html.kgp-dark-mode [style*="background: white"],
+html.kgp-dark-mode [style*="background:white"],
+html.kgp-dark-mode [style*="background-color: #fff"],
+html.kgp-dark-mode [style*="background-color:#fff"],
+html.kgp-dark-mode [style*="background-color: white"],
+html.kgp-dark-mode [style*="background-color:white"],
+html.kgp-dark-mode [style*="background: rgb(255, 255, 255)"],
+html.kgp-dark-mode [style*="background-color: rgb(255, 255, 255)"],
+html.kgp-dark-mode [style*="background: #FFF"],
+html.kgp-dark-mode [style*="background-color: #FFF"],
+html.kgp-dark-mode [style*="background: #ffffff"],
+html.kgp-dark-mode [style*="background-color: #ffffff"],
+html.kgp-dark-mode [style*="background:#ffffff"],
+html.kgp-dark-mode [style*="background-color:#ffffff"],
+html.kgp-dark-mode [bgcolor="#ffffff"],
+html.kgp-dark-mode [bgcolor="#fff" i],
+html.kgp-dark-mode [bgcolor="white" i],
+html.kgp-dark-mode [bgcolor="#FFFFFF" i] {
+  background-color: #0b1420 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Comprehensive Case-Insensitive Override for Any Elements with Inline White Backgrounds */
+html.kgp-dark-mode [style*="background:" i][style*="#fff" i],
+html.kgp-dark-mode [style*="background:" i][style*="white" i],
+html.kgp-dark-mode [style*="background:" i][style*="rgb(255" i],
+html.kgp-dark-mode [style*="background-color:" i][style*="#fff" i],
+html.kgp-dark-mode [style*="background-color:" i][style*="white" i],
+html.kgp-dark-mode [style*="background-color:" i][style*="rgb(255" i],
+html.kgp-dark-mode [style*="background:" i][style*="#f" i],
+html.kgp-dark-mode [style*="background-color:" i][style*="#f" i] {
+  background-color: #0b1420 !important;
+  color: #e2e8f0 !important;
+}
+
+/* 3. Sidebar, Menus & Navigation Trees */
+html.kgp-dark-mode #sidebar,
+html.kgp-dark-mode .sidebar,
+html.kgp-dark-mode .main-sidebar,
+html.kgp-dark-mode .left-side,
+html.kgp-dark-mode .sidebar-menu,
+html.kgp-dark-mode .treeview-menu {
+  background-color: #09101a !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html.kgp-dark-mode .sidebar a,
+html.kgp-dark-mode .treeview-menu a {
+  color: #94a3b8 !important;
+}
+
+html.kgp-dark-mode .sidebar a:hover,
+html.kgp-dark-mode .treeview-menu a:hover,
+html.kgp-dark-mode .sidebar-menu > li:hover > a {
+  color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.08) !important;
+}
+
+/* Academic & Placement Vertical Menus (List-Group Semester Tabs) */
+html.kgp-dark-mode .list-group,
+html.kgp-dark-mode .list-group-item {
+  background-color: #0d1622 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+}
+
+html.kgp-dark-mode .list-group-item:hover,
+html.kgp-dark-mode a.list-group-item:hover,
+html.kgp-dark-mode button.list-group-item:hover {
+  background-color: rgba(56, 189, 248, 0.08) !important;
+  color: #38bdf8 !important;
+}
+
+html.kgp-dark-mode .list-group-item.active,
+html.kgp-dark-mode .list-group-item.active:hover,
+html.kgp-dark-mode .list-group-item.active:focus {
+  background-color: #1d4ed8 !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* 4. Panels, Boxes, Cards, Wells, Page Headers & Main Containers */
+html.kgp-dark-mode .panel,
+html.kgp-dark-mode .panel-default,
+html.kgp-dark-mode .panel-primary,
+html.kgp-dark-mode .well,
+html.kgp-dark-mode .box,
+html.kgp-dark-mode .card,
+html.kgp-dark-mode .modal-content,
+html.kgp-dark-mode .page-header,
+html.kgp-dark-mode .content,
+html.kgp-dark-mode .content-wrapper,
+html.kgp-dark-mode .main-content,
+html.kgp-dark-mode #content,
+html.kgp-dark-mode #main,
+html.kgp-dark-mode fieldset {
+  background-color: #0b131e !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+
+html.kgp-dark-mode .page-header h1,
+html.kgp-dark-mode .page-header h2,
+html.kgp-dark-mode .page-header h3,
+html.kgp-dark-mode .page-header h4,
+html.kgp-dark-mode h1,
+html.kgp-dark-mode h2,
+html.kgp-dark-mode h3,
+html.kgp-dark-mode h4,
+html.kgp-dark-mode h5 {
+  color: #f1f5f9 !important;
+}
+
+html.kgp-dark-mode .panel-heading,
+html.kgp-dark-mode .box-header,
+html.kgp-dark-mode .card-header {
+  background-color: #142232 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #93c5fd !important;
+  font-weight: 600 !important;
+}
+
+html.kgp-dark-mode .panel-footer,
+html.kgp-dark-mode .box-footer {
+  background-color: #0d1622 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 5. Tables: Grade Cards, Subject Lists, Registration & Fees */
+html.kgp-dark-mode table,
+html.kgp-dark-mode .table {
+  background-color: #0f1a26 !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.kgp-dark-mode .table > thead > tr > th,
+html.kgp-dark-mode table th {
+  background-color: #142335 !important;
+  color: #93c5fd !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.2px !important;
+}
+
+html.kgp-dark-mode .table > tbody > tr > td,
+html.kgp-dark-mode table td {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+html.kgp-dark-mode .table-striped > tbody > tr:nth-of-type(odd),
+html.kgp-dark-mode table tr:nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+html.kgp-dark-mode .table-hover > tbody > tr:hover,
+html.kgp-dark-mode table tr:hover td {
+  background-color: rgba(56, 189, 248, 0.06) !important;
+}
+
+/* 6. Form Controls, Inputs, Dropdowns & Textareas */
+html.kgp-dark-mode input[type="text"],
+html.kgp-dark-mode input[type="password"],
+html.kgp-dark-mode input[type="email"],
+html.kgp-dark-mode input[type="number"],
+html.kgp-dark-mode input[type="search"],
+html.kgp-dark-mode select,
+html.kgp-dark-mode textarea,
+html.kgp-dark-mode .form-control {
+  background-color: #131e2c !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 6px !important;
+}
+
+html.kgp-dark-mode input:focus,
+html.kgp-dark-mode select:focus,
+html.kgp-dark-mode textarea:focus,
+html.kgp-dark-mode .form-control:focus {
+  border-color: #3b82f6 !important;
+  background-color: #172436 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+  color: #ffffff !important;
+}
+
+html.kgp-dark-mode input::placeholder,
+html.kgp-dark-mode .form-control::placeholder {
+  color: #64748b !important;
+}
+
+/* 7. Buttons */
+html.kgp-dark-mode .btn-default {
+  background-color: #1a2738 !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html.kgp-dark-mode .btn-default:hover {
+  background-color: #24354c !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+html.kgp-dark-mode .btn-primary {
+  background-color: #2563eb !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+html.kgp-dark-mode .btn-primary:hover {
+  background-color: #1d4ed8 !important;
+}
+
+/* 8. SweetAlert, Modals, Dialogs & Backdrop Overlays */
+html.kgp-dark-mode .ui-widget-overlay,
+html.kgp-dark-mode .modal-backdrop,
+html.kgp-dark-mode .blockOverlay,
+html.kgp-dark-mode .swal2-container,
+html.kgp-dark-mode .modalBackground,
+html.kgp-dark-mode .window-mask,
+html.kgp-dark-mode .mask,
+html.kgp-dark-mode .overlay,
+html.kgp-dark-mode .popup_overlay,
+html.kgp-dark-mode div[class*="overlay" i]:not(#kgp-auto-login-banner *),
+html.kgp-dark-mode div[class*="backdrop" i] {
+  background-color: rgba(3, 7, 18, 0.82) !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+html.kgp-dark-mode .ui-dialog,
+html.kgp-dark-mode .ui-dialog-content,
+html.kgp-dark-mode .ui-dialog-buttonpane,
+html.kgp-dark-mode .modal-dialog,
+html.kgp-dark-mode .modal-content,
+html.kgp-dark-mode .modal-body,
+html.kgp-dark-mode .modal-header,
+html.kgp-dark-mode .modal-footer {
+  background-color: #0d1624 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85) !important;
+}
+
+html.kgp-dark-mode .ui-dialog-titlebar {
+  background-color: #142235 !important;
+  color: #93c5fd !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.kgp-dark-mode .ui-dialog-titlebar-close {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+}
+
+html.kgp-dark-mode .ui-dialog-titlebar-close:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.kgp-dark-mode .swal2-popup {
+  background-color: #0f1824 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85) !important;
+}
+
+html.kgp-dark-mode .swal2-title {
+  color: #ffffff !important;
+}
+
+html.kgp-dark-mode .swal2-html-container,
+html.kgp-dark-mode .swal2-content {
+  color: #cbd5e1 !important;
+}
+
+/* 9. Preserve Original Images, Captchas, QR codes, Barcodes */
+html.kgp-dark-mode img,
+html.kgp-dark-mode svg,
+html.kgp-dark-mode canvas,
+html.kgp-dark-mode .captcha,
+html.kgp-dark-mode #captcha,
+html.kgp-dark-mode #im_captcha {
+  filter: none !important;
+  background-color: transparent !important;
+}
+
+/* 10. jQuery UI & jqGrid Tables (Used across CDC, Acad, Fees, Placement) */
+html.kgp-dark-mode .ui-jqgrid,
+html.kgp-dark-mode .ui-jqgrid-view,
+html.kgp-dark-mode .ui-jqgrid-bdiv,
+html.kgp-dark-mode .ui-jqgrid-hdiv,
+html.kgp-dark-mode .ui-jqgrid-pager,
+html.kgp-dark-mode .ui-widget-content,
+html.kgp-dark-mode .ui-widget-header {
+  background: #0f1a26 !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.kgp-dark-mode .ui-jqgrid-titlebar {
+  background: #142232 !important;
+  color: #93c5fd !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.kgp-dark-mode .ui-state-default,
+html.kgp-dark-mode .ui-th-column,
+html.kgp-dark-mode .ui-jqgrid-htable th {
+  background: #142335 !important;
+  color: #93c5fd !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.kgp-dark-mode .ui-jqgrid tr.jqgrow {
+  background-color: transparent !important;
+}
+
+html.kgp-dark-mode .ui-jqgrid tr.jqgrow td {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  color: #e2e8f0 !important;
+}
+
+html.kgp-dark-mode .ui-jqgrid tr.jqgrow:hover {
+  background-color: rgba(56, 189, 248, 0.06) !important;
+}
+
+html.kgp-dark-mode .ui-state-highlight {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #ffffff !important;
+}
+
+/* 11. Links, Breadcrumbs & Notification Bars */
+html.kgp-dark-mode a {
+  color: #60a5fa !important;
+}
+
+html.kgp-dark-mode a:hover {
+  color: #93c5fd !important;
+}
+
+html.kgp-dark-mode .breadcrumb,
+html.kgp-dark-mode .navigation,
+html.kgp-dark-mode #navigation {
+  background: #0d1622 !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 12. Iframes & Embeds */
+html.kgp-dark-mode iframe {
+  background-color: #0b131e !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}

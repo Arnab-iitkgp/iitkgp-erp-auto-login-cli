@@ -1,15 +1,94 @@
-# KGP ERP CLI (beta)
+# IIT KGP ERP Auto-Login (Extension & CLI) (Beta)
 
 [![npm version](https://img.shields.io/npm/v/kgp-erp-cli.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/kgp-erp-cli)
 [![downloads](https://img.shields.io/npm/dt/kgp-erp-cli.svg?color=blue)](https://www.npmjs.com/package/kgp-erp-cli)
 [![license](https://img.shields.io/npm/l/kgp-erp-cli.svg?color=green)](./LICENSE)
-[![node](https://img.shields.io/node/v/kgp-erp-cli.svg?color=brightgreen)](https://nodejs.org)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Coming_Soon-orange?logo=googlechrome&logoColor=white)](#browser-extension)
 [![Windows](https://img.shields.io/badge/Windows-0078D6?logo=windowsterminal&logoColor=white)](#)
 [![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)](#)
 [![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)](#)
 [![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white)](#)
 
-A sleek, state-of-the-art Command Line Interface (CLI) tool designed for auto-logging into the Indian Institute of Technology Kharagpur (IIT KGP) ERP system. Say goodbye to repeatedly typing roll numbers, solving security questions, and entering OTPs manually.
+Auto-login for IIT Kharagpur ERP. Enters your roll number and password, answers the security question, grabs the OTP from Gmail, and signs you in.
+
+
+> **Note**: Chrome Web Store release is coming soon. In the meantime, you can load the extension unpacked in under a minute via Developer Mode.
+
+---
+
+## Quick Index
+
+- [Browser Extension](#browser-extension)
+  - [Features](#extension-features)
+  - [Install (Load Unpacked)](#extension-setup-load-unpacked)
+  - [Shortcut](#extension-shortcut)
+- [CLI Tool](#cli-tool)
+  - [Features](#cli-features)
+  - [Install](#cli-installation)
+  - [Quick Start](#cli-quick-start)
+  - [Commands](#cli-commands)
+  - [Timetable Slots](#timetable-slots)
+  - [Termux / Android](#running-on-android-termux--headless-linux)
+- [How Session Caching Works](#how-session-caching-works)
+- [Security & Privacy](#security--privacy)
+
+---
+
+<a id="browser-extension"></a>
+## Browser Extension
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Coming_Soon-orange?logo=googlechrome&logoColor=white)](#browser-extension)
+
+<p align="center">
+  <img src="extension/icons/logo.png" width="155" alt="IIT KGP ERP Extension Logo" />
+</p>
+
+Works on Chrome, Brave, Edge, and other Chromium browsers.
+
+<a id="extension-features"></a>
+### Extension Features
+
+- **Logs in automatically**: When you open ERP, it fills your credentials, answers the security question, reads the OTP from your signed-in Gmail tab, and submits. No Gmail app passwords or IMAP setup needed.
+- **Dark mode**: A full dark theme for ERP that doesn't flash white on page loads. Covers menus, grade tables, CDC notices, and popups.
+- **Quick launch shortcut**: Press `Alt + Shift + E` (`Cmd + Shift + E` on Mac) anywhere in your browser to open ERP or jump straight to your existing ERP tab.
+- **Password-protect settings**: Lock your saved credentials behind your ERP password so friends using your laptop can't open your settings.
+- **Doesn't get stuck**: If an OTP takes longer than 90s or Gmail isn't signed in, it highlights the OTP box and lets you enter it manually instead of refreshing endlessly.
+- **Built-in FAQ**: Quick answers in the popup for multi-account Gmail setups and login issues. Still running into problems? [Open an issue on GitHub](https://github.com/Arnab-iitkgp/erp-auto-login-cli/issues).
+
+<a id="extension-setup-load-unpacked"></a>
+### Install (Load Unpacked)
+
+1. Clone or download this repo:
+   ```bash
+   git clone https://github.com/Arnab-iitkgp/erp-auto-login-cli.git
+   ```
+2. Open your extensions page (`chrome://extensions`, `brave://extensions`, or `edge://extensions`).
+3. Turn on **Developer mode** (top-right toggle).
+4. Click **Load unpacked** and select the `extension/` folder.
+5. Click the extension icon in your toolbar:
+   - Enter your Roll Number and ERP Password.
+   - Click **Check / Link** to pick your signed-in Gmail account.
+   - Enter your 3 security questions (or click **Fetch All 3 Questions**).
+   - Click **Save**.
+
+That's it. Next time you visit ERP, it logs in on its own.
+
+<a id="extension-shortcut"></a>
+### Extension Shortcut
+
+| OS | Shortcut | Action |
+| --- | --- | --- |
+| **Windows / Linux** | `Alt + Shift + E` | Open ERP or switch to existing ERP tab |
+| **macOS** | `Cmd + Shift + E` | Open ERP or switch to existing ERP tab |
+
+*(You can customize this hotkey anytime at `chrome://extensions/shortcuts`)*
+
+---
+
+<a id="cli-tool"></a>
+## CLI Tool
+
+[![npm version](https://img.shields.io/npm/v/kgp-erp-cli.svg?color=cb3837&label=npm)](https://www.npmjs.com/package/kgp-erp-cli)
 
 ```
            .:...:
@@ -28,152 +107,138 @@ A sleek, state-of-the-art Command Line Interface (CLI) tool designed for auto-lo
 -.---.----..:..---.:.:--:.:-....:
 ```
 
-## Features
+<a id="cli-features"></a>
+### CLI Features
 
-- **Instant Session Caching**: Keeps your session active using secure token storage. Bypasses the OTP flow entirely on subsequent logins unless the session has expired.
-- **Secure Credentials**: Saves passwords and answers to security questions in your system's native keychain (Windows Credential Manager / macOS Keychain) using `@napi-rs/keyring`. Falls back to a local file with consent when a keychain is unavailable (Termux, headless Linux, WSL).
-- **Automated OTP Fetching**: Connects to your Gmail inbox via IMAP to automatically fetch the OTP requested during the ERP login flow.
-- **Parallel Optimization**: Connects to the ERP portal and Gmail concurrently to authenticate as fast as possible.
-- **Cross-Platform Browser Integration**: Automatically launches your default browser with your authenticated session token.
-- **Timetable Management**: Save your enrolled slots, check clashes, find free slots by credit count, render your week as a color-coded grid, and get a health-check summary before registration.
+- **Fast logins with cached sessions**: Saves your login token so you don't need an OTP every time. Opens ERP in your browser in under a second if your session is still valid.
+- **OS Keychain**: Passwords and security answers are encrypted in your system keychain (Windows Credential Manager, macOS Keychain, or Linux Secret Service).
+- **IMAP OTP**: Reads the OTP email from Gmail over IMAP using a Gmail App Password.
+- **Timetable tools**: Add your course slots, test electives for clashes, find free periods, and print a weekly schedule grid in your terminal.
 
----
+<a id="cli-installation"></a>
+### CLI Installation
 
-## Installation
+#### Prerequisites
+- **Node.js** (v18 or higher)
+- **Gmail App Password**: For IMAP access. Generate one under Google Account > Security > 2-Step Verification > App passwords.
 
-### Prerequisites
-- **Node.js** (v18 or higher recommended)
-- **Gmail App Password**: For security reasons, Gmail requires an App Password to authenticate over IMAP. You can create one in your Google Account settings (Security > 2-Step Verification > App passwords). **2-Step Verification must be enabled** first — without it, App Passwords aren't available.
-
-### Global Installation (Recommended)
-
-You can install this package globally using npm:
-
+#### Install Globally
 ```bash
 npm install -g kgp-erp-cli
 ```
+*(Or run directly via `npx kgp-erp-cli`)*
 
-_(Or build locally and link using `npm link`)_
+<a id="cli-quick-start"></a>
+### CLI Quick Start
 
----
+1. **Configure credentials**:
+   ```bash
+   erp setup
+   ```
+   Follow the interactive prompt to set your Roll Number, Gmail address, ERP Password, Gmail App Password, and security answers.
 
-## Getting Started
-### 0. Try run `erp`
+2. **Log in**:
+   ```bash
+   erp login
+   ```
+   - If an active session exists, it skips the OTP and opens your browser immediately.
+   - If the session expired, it fetches a fresh OTP over IMAP and logs you in.
 
-### 1. Setup Configuration
-Run the setup command to configure your Roll Number, Gmail address, ERP Password, Gmail App Password, and answers to your security questions.
+3. **Check configuration**:
+   ```bash
+   erp status            # Shows saved roll number and email
+   erp status --reveal   # Displays saved passwords and security answers (requires ERP password)
+   ```
 
-```bash
-erp setup
-```
+4. **Reset credentials**:
+   ```bash
+   erp reset             # Clears all stored configs and keychain secrets
+   ```
 
-Follow the interactive prompts. The security question answers and passwords will be stored securely in your system's keychain.
+<a id="cli-commands"></a>
+### CLI Commands
 
-### 2. Login
+Run `erp` with no arguments to bring up the interactive menu, or use the direct commands below:
 
-To auto-login and launch your browser:
-
-```bash
-erp login
-```
-- If you have an active cached session, it will say `Session alive — skipping OTP!` and immediately open your browser in under **1 second**.
-- If the session is expired or not found, it will trigger the full authentication flow (requires Gmail connectivity) and automatically renew the cache.
-
-### 3. Check Configuration Status
-To view your saved Roll Number and Gmail email:
-
-```bash
-erp status
-```
-
-To reveal the stored passwords and security question answers, use the `--reveal` flag:
-
-```bash
-erp status --reveal
-```
-
-_(Requires entering your ERP password for authorization)_
-
-### 4. Clear/Reset Everything
-
-To delete all local configurations and clear credentials from your system keychain:
-
-```bash
-erp reset
-```
+| Command | Option | Description |
+| --- | --- | --- |
+| `erp login` | `--fresh` | Log in to ERP. `--fresh` forces a new OTP login, clearing the cached session. |
+| `erp setup` | - | Interactive wizard to configure credentials and security questions. |
+| `erp status` | `--reveal` | View configuration details. `--reveal` unmasks passwords after confirmation. |
+| `erp reset` | - | Safely delete local configuration files and all keychain secrets. |
+| `erp slot` | - | Manage timetable slots, check clashes, and visualize your week (see below). |
+| `erp guide` | - | Comprehensive reference of all commands with practical examples. |
+| `erp devnote` | - | Project notes, security summary, and feedback link. |
 
 ---
 
-## CLI Commands
-
-If you run `erp` with no arguments, an interactive menu will guide you. For a full reference run `erp guide` (alias: `erp commands`).
-
-| Command       | Option     | Description                                                                   |
-| ------------- | ---------- | ----------------------------------------------------------------------------- |
-| `erp login`   | `--fresh`  | Log in to ERP. The `--fresh` flag forces a new OTP login, clearing the cache. |
-| `erp setup`   | -          | Configure credentials and security questions.                                 |
-| `erp status`  | `--reveal` | View configuration details. `--reveal` displays the passwords/answers.        |
-| `erp reset`   | -          | Safely delete configuration file and all keychain secrets.                    |
-| `erp slot`    | -          | List your saved timetable slots. Sub-commands manage the schedule (see below).|
-| `erp guide`   | -          | Show every command grouped by intent, with examples.                          |
-| `erp devnote` | -          | A short note from the dev — repo link, safety info, where to drop feedback.   |
-
----
-
+<a id="timetable-slots"></a>
 ## Timetable Slots
 
-Save your enrolled ERP slots locally and use the CLI to check clashes, plan registration, and view your week. Lab slots accept either the bare letter (e.g. `q`) or canonical form (`LAB:Q`).
+Save your enrolled course slots locally to test for clashes before registration, find open periods by credit count, and print your weekly schedule.
 
-| Command                            | Description                                                                                          |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `erp slot add <slots>`             | Add one or more slots. Use `slot=name` to attach a course name. Refuses any clashing combo.          |
-| `erp slot remove <slots>`          | Remove slots from your saved timetable.                                                              |
-| `erp slot name <slot> [name...]`   | Attach or update a course name on a saved slot. Omit the name to clear it.                           |
-| `erp slot reset`                   | Clear every saved slot at once.                                                                      |
-| `erp slot check <slot>`            | Check whether a slot fits your schedule. Reports which slots it clashes with if not.                 |
-| `erp slot free [credits\|lab]`     | List completely free slots. No argument shows 2 / 3 / 4-credit and lab summary; or pass a filter.    |
-| `erp slot week`                    | Render your saved schedule as a color-coded 5×9 week grid with time-of-day headers.                  |
-| `erp slot stats`                   | Health-check summary: total credits, periods used, busiest day, free days, longest stretch.          |
+| Command | Description |
+| --- | --- |
+| `erp slot add <slots>` | Add one or more slots (e.g. `erp slot add D3=Algo U2=DSA q`). Prevents clashing entries. |
+| `erp slot remove <slots>` | Remove one or more slots from your schedule. |
+| `erp slot name <slot> [name]` | Label or rename a slot (e.g. `erp slot name D3 Algorithms`). |
+| `erp slot reset` | Clear your entire timetable schedule. |
+| `erp slot check <slot>` | Check whether a slot clashes with your existing schedule. |
+| `erp slot free [credits\|lab]` | List completely free slots. Pass `2`, `3`, `4`, or `lab` to filter. |
+| `erp slot week` | Render your schedule as a clean, color-coded 5×9 weekly grid. |
+| `erp slot stats` | Summary of total credits, periods used, busiest days, and free blocks. |
 
-**Examples:**
-
+**Quick Examples:**
 ```bash
-erp slot add D3=Algorithms U2=DSA q             # add three slots with names
-erp slot check H3                                # does H3 fit my schedule?
-erp slot free 3                                  # what 3-credit slots are open?
-erp slot week                                    # visualize the week
-erp slot stats                                   # sanity-check credits & day load
+erp slot add D3=Algorithms U2=DSA q     # Add 3 slots with course labels
+erp slot check H3                        # Check if H3 fits without a clash
+erp slot free 3                          # What 3-credit slots are free?
+erp slot week                            # Render the 5x9 terminal grid
 ```
 
 ---
 
+<a id="running-on-android-termux--headless-linux"></a>
 ## Running on Android (Termux) / Headless Linux
 
-The CLI runs on any platform with Node.js, including Termux on Android and minimal Linux installs without a desktop keychain daemon. When no OS keychain is available, the CLI prompts for consent and falls back to a plain-text file at `~/.config/erp-cli/secrets.json` (visible to your user account only).
+The CLI works on headless servers, WSL, and Android via Termux. When an OS keychain daemon is unavailable, it prompts for your consent and falls back to a user-restricted local file at `~/.config/erp-cli/secrets.json`.
 
-**On Termux (Android):**
-
-1. Install Termux from F-Droid (not Play Store — the Play Store build is outdated).
-2. `pkg install nodejs git`
-3. `npm install -g kgp-erp-cli`
-4. `erp setup` — accept the keychain-fallback prompt when shown.
-
-On Termux, the `erp login` step will print the SSO URL but won't auto-open a browser. Copy the URL into Chrome manually.
+**On Android via Termux:**
+1. Install Termux from F-Droid (avoid the outdated Play Store version).
+2. Install dependencies:
+   ```bash
+   pkg update && pkg install nodejs git
+   ```
+3. Install the CLI:
+   ```bash
+   npm install -g kgp-erp-cli
+   ```
+4. Run `erp setup` and accept the file-storage fallback prompt.
+5. Run `erp login` — on Termux, it prints the authenticated SSO URL directly so you can paste it into Chrome.
 
 ---
 
+<a id="how-session-caching-works"></a>
 ## How Session Caching Works
 
-1. **Authentication**: Upon a successful login using password and OTP, the server returns an `ssoToken`.
-2. **Persistence**: The CLI securely saves this token inside `~/.config/erp-cli/session.json` along with its creation time.
-3. **Live Probe Verification**: Before attempting to request a new OTP, the CLI sends a lightweight background request to the ERP server using `redirect: "manual"` to verify the token.
-   - If the token is still valid, the browser is launched immediately, saving time and resources.
-   - If the server redirects the request to `logout.htm`, the token is flagged as expired and the CLI falls back to the full OTP flow.
+1. **Authentication**: After submitting your password and OTP, the server responds with a session token (`ssoToken`).
+2. **Storage**: The CLI saves this token in `~/.config/erp-cli/session.json` along with its timestamp.
+3. **Probe Verification**: Before requesting a new OTP, the CLI sends a lightweight probe request to ERP using `redirect: "manual"`:
+   - If the server accepts the token, your browser opens immediately (**under 1 second**).
+   - If the server redirects to `logout.htm`, the token is expired and the CLI triggers a fresh login.
 
 ---
 
-## Future Plan
+<a id="security--privacy"></a>
+## Security & Privacy
 
-- **Watch Mode**: A background service/daemon that monitors session state and automatically renews cookies/tokens to keep you logged in indefinitely.
-- **CDC Integration**: Follow standard redirection chains automatically to authenticate into the Placement/Internship sub-portal directly.
-- **Browser Extension Support**: Connect the CLI with a lightweight Chrome/Firefox browser extension to sync login states without launching new tabs manually.
+- **100% Local**: All credentials, tokens, and question answers stay on your machine. Nothing is sent to any third-party server or analytics service.
+- **Keychain Protected**: The CLI stores secrets in your OS's native credential vault (`@napi-rs/keyring`). The extension keeps data in Chrome's isolated storage sandbox (`chrome.storage.local`).
+- **Direct Communication**: Both tools talk only to `erp.iitkgp.ac.in` and `mail.google.com` / `imap.gmail.com`.
+- **Open Source**: Every line of code is open for review. Inspect the repository anytime.
+
+---
+
+## License
+
+Distributed under the [MIT License](./LICENSE). Built by students, for students.
