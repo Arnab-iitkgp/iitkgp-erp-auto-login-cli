@@ -67,6 +67,28 @@
     }
   } catch (e) {}
 
+  // Synchronously suppress ERP's broken SSO error screen before first paint
+  const initialUrlParams = new URLSearchParams(window.location.search);
+  const initialReqUrl = initialUrlParams.get("requestedUrl") || "";
+  const isCdcErrorPage =
+    window.location.pathname.includes("SSOAdministration") &&
+    (initialReqUrl.includes("Notice.jsp") ||
+     initialReqUrl.includes("TPStudent.jsp") ||
+     initialReqUrl.includes("TrainingPlacementSSO"));
+
+  if (isCdcErrorPage) {
+    try {
+      const instantGuardStyle = document.createElement("style");
+      instantGuardStyle.id = "kgp-sso-instant-guard-style";
+      instantGuardStyle.textContent = `
+        .panel-danger {
+          display: none !important;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(instantGuardStyle);
+    } catch {}
+  }
+
   function applyDarkMode(enabled) {
     if (enabled) {
       document.documentElement.classList.add("kgp-dark-mode");
@@ -329,6 +351,7 @@
         window.sessionStorage.removeItem("kgp_attemptWindowStart");
         window.sessionStorage.removeItem("kgp_lastSubmittedOtp");
       } catch {}
+
       return;
     }
 
@@ -580,6 +603,176 @@
     runAutoLogin();
   }
 
+  // --- CDC & SSO In-Page Session Guard ---
+  // When a user hits a deep CDC page (Notice.jsp or TPStudent.jsp) while logged out,
+  // ERP redirects to SSOAdministration/login.htm, which renders "ERROR !!! Some system error occurred."
+  // Instead of an intrusive full-screen overlay or auto-refresh loop, we cleanly replace the
+  // error panel right on the page itself, keeping ERP's top banner intact.
+  const CDC_PAGES = ["Notice.jsp", "TPStudent.jsp"];
+  const isCdcPage = CDC_PAGES.some((p) => window.location.pathname.includes(p));
+
+  function renderInPageLoggedOutCard() {
+    // If the real login form is present, NEVER render the logged-out card!
+    if (document.getElementById("loginForm") || document.getElementById("user_id")) {
+      const existing = document.getElementById("kgp-cdc-inpage-guard");
+      if (existing) existing.remove();
+      return;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const reqUrl = urlParams.get("requestedUrl") || window.location.pathname;
+
+    // If requestedUrl points to IIT_ERP3, this is the official ERP login flow — do not show card!
+    if (reqUrl.includes("IIT_ERP3")) {
+      return;
+    }
+
+    if (document.getElementById("kgp-cdc-inpage-guard")) return;
+
+    // Remove any old fixed overlay if present
+    const oldOverlay = document.getElementById("kgp-cdc-session-guard");
+    if (oldOverlay) oldOverlay.remove();
+
+    // Hide ERP's raw error panel
+    document.querySelectorAll(".panel-danger, .panel-danger *").forEach((el) => {
+      el.style.setProperty("display", "none", "important");
+    });
+
+    const isMac =
+      navigator.platform.toUpperCase().indexOf("MAC") >= 0 ||
+      navigator.userAgent.toUpperCase().indexOf("MAC") >= 0;
+    const shortcutHint = isMac
+      ? "<kbd class='kgp-inpage-kbd'>⌘</kbd> <span class='kgp-inpage-plus'>+</span> <kbd class='kgp-inpage-kbd'>Shift</kbd> <span class='kgp-inpage-plus'>+</span> <kbd class='kgp-inpage-kbd'>E</kbd>"
+      : "<kbd class='kgp-inpage-kbd'>Alt</kbd> <span class='kgp-inpage-plus'>+</span> <kbd class='kgp-inpage-kbd'>X</kbd>";
+
+    const isNotice = reqUrl.includes("Notice");
+    const isCdcApp = reqUrl.includes("TPStudent");
+
+    const portalName = isNotice
+      ? "the CDC Notice Board"
+      : isCdcApp
+      ? "CDC Applications"
+      : "IIT KGP ERP";
+
+    const logoUrl = chrome.runtime.getURL("icons/logo.png");
+    const card = document.createElement("div");
+    card.id = "kgp-cdc-inpage-guard";
+    card.innerHTML = `
+      <div class="kgp-inpage-card-inner">
+        <!-- Extension Brand Header -->
+        <div class="kgp-inpage-brand-bar">
+          <img src="${logoUrl}" class="kgp-inpage-brand-icon" alt="KGP ERP Auto-Login Logo" />
+          <span class="kgp-inpage-brand-name">KGP ERP Auto-Login</span>
+        </div>
+
+        <div class="kgp-inpage-divider"></div>
+
+        <!-- Main Body -->
+        <div class="kgp-inpage-body">
+          <h2 class="kgp-inpage-title">Session Expired</h2>
+          <p class="kgp-inpage-desc">
+            You are logged out of ERP. Log back in to open <strong>${portalName}</strong>.
+          </p>
+
+          <div class="kgp-inpage-hotkey-box">
+            <div style="margin-bottom: 4px;">Press ${shortcutHint}</div>
+            <div class="kgp-inpage-hotkey-sub">to open ERP Home &amp; auto-login</div>
+          </div>
+
+          <button id="kgp-inpage-login-btn" class="kgp-inpage-btn" type="button">
+            <span>Log In to ERP</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Locate the container in the page
+    const container =
+      document.querySelector(".container-fluid") ||
+      document.querySelector(".container") ||
+      document.body;
+
+    // If on Notice.jsp / TPStudent.jsp with stale tables, hide them so user isn't misled
+    if (isCdcPage) {
+      document.querySelectorAll("table, .table, #notice_table, form").forEach((el) => {
+        el.style.setProperty("display", "none", "important");
+      });
+    }
+
+    if (container) {
+      container.prepend(card);
+    } else {
+      document.body.appendChild(card);
+    }
+
+    const btn = card.querySelector("#kgp-inpage-login-btn");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        window.location.href = "https://erp.iitkgp.ac.in/IIT_ERP3/";
+      });
+    }
+
+    // Keyboard shortcut listeners
+    window.addEventListener("keydown", (e) => {
+      const isAltX = e.altKey && (e.key === "x" || e.key === "X");
+      const isMacCmdShiftE =
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        (e.key === "e" || e.key === "E" || e.key === "x" || e.key === "X");
+      if (isAltX || isMacCmdShiftE) {
+        window.location.href = "https://erp.iitkgp.ac.in/IIT_ERP3/";
+      }
+    });
+  }
+
+  // 1. If page is CDC error redirect page
+  if (isCdcErrorPage) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", renderInPageLoggedOutCard);
+    } else {
+      renderInPageLoggedOutCard();
+    }
+  }
+
+  // 2. If page is cached CDC page (Notice.jsp or TPStudent.jsp)
+  if (isCdcPage) {
+    fetch(window.location.href, {
+      method: "GET",
+      cache: "no-store",
+      credentials: "include",
+      redirect: "follow",
+    })
+      .then((res) => {
+        const finalUrl = res.url || "";
+        const isLoginPage =
+          finalUrl.includes("SSOAdministration") ||
+          finalUrl.includes("login") ||
+          finalUrl !== window.location.href;
+
+        if (isLoginPage) {
+          renderInPageLoggedOutCard();
+        }
+      })
+      .catch(() => {});
+  }
+
+  // 3. Fallback: Catch any ERP page that renders "ERROR !!! Some system error occurred."
+  function checkSystemError() {
+    if (document.getElementById("loginForm") || document.getElementById("user_id")) return;
+    const errorPanel = document.querySelector(".panel-danger");
+    if (errorPanel && document.body && document.body.textContent.includes("Some system error occurred")) {
+      renderInPageLoggedOutCard();
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkSystemError);
+  } else {
+    checkSystemError();
+  }
+
   // Run as soon as DOM is ready AND tab is visible
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", maybeRunAutoLogin);
@@ -591,3 +784,4 @@
   // come to the foreground before triggering auto-login.
   document.addEventListener("visibilitychange", maybeRunAutoLogin);
 })();
+
