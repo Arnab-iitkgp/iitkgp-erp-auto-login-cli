@@ -348,13 +348,25 @@
         window.sessionStorage.removeItem("kgp_attemptWindowStart");
         window.sessionStorage.removeItem("kgp_lastSubmittedOtp");
         window.sessionStorage.removeItem("kgp_manual_otp_sent");
+
+        // Save latest ssoToken for CLI-style sessionAlive check
+        const urlParams = new URLSearchParams(window.location.search);
+        const ssoUrl = urlParams.get("ssoToken");
+        if (ssoUrl) {
+          chrome.storage.local.set({ latestSsoToken: ssoUrl });
+        } else {
+          const match = document.cookie.match(/\bssoToken=([^;]+)/);
+          if (match && match[1]) {
+            chrome.storage.local.set({ latestSsoToken: match[1] });
+          }
+        }
       } catch {}
 
       return;
     }
 
     chrome.storage.local.get(
-      ["erpRoll", "erpPassword", "gmailEmail", "securityQuestions", "autoLogin", "gmailAccountIndex", "otpFetchMode"],
+      ["erpRoll", "erpPassword", "gmailEmail", "securityQuestions", "autoLogin", "gmailAccountIndex", "otpFetchMode", "enableUidSnapshot"],
       async (stored) => {
         const autoLoginEnabled = stored.autoLogin !== false;
         if (!autoLoginEnabled) return;
@@ -500,6 +512,23 @@
         updateBannerStatus("Requesting OTP from ERP...", "info");
         const startTime = Date.now();
 
+        // Capture pre-dispatch inbox snapshot for UID-based detection (CLI approach) if feature is enabled
+        let preSnapshotIds = [];
+        const isUidDetectionEnabled = stored.enableUidSnapshot !== false;
+        if (isUidDetectionEnabled) {
+          try {
+            const snapRes = await new Promise((resolve) => {
+              chrome.runtime.sendMessage(
+                { type: "SNAPSHOT_OTP_INBOX", accountIndex: stored.gmailAccountIndex ?? 0 },
+                (r) => resolve(r || {})
+              );
+            });
+            if (snapRes && snapRes.ids) {
+              preSnapshotIds = snapRes.ids;
+            }
+          } catch (e) {}
+        }
+
         if (getOtpBtn) {
           getOtpBtn.click();
         } else {
@@ -530,6 +559,7 @@
             type: "START_OTP_POLL",
             accountIndex: stored.gmailAccountIndex ?? 0,
             startTime,
+            preSnapshotIds,
             timeoutMs: 90000,
           },
           async (response) => {
@@ -747,19 +777,141 @@
     const btn = card.querySelector("#kgp-inpage-login-btn");
     if (btn) {
       btn.addEventListener("click", () => {
-        window.location.href = "https://erp.iitkgp.ac.in/IIT_ERP3/";
+        try { window.sessionStorage.clear(); } catch (e) {}
+        chrome.runtime.sendMessage({ type: "FORCE_RELOGIN" });
       });
     }
+  }
 
-    // Keyboard shortcut listeners
-    window.addEventListener("keydown", (e) => {
-      const isAltX = e.altKey && (e.key === "x" || e.key === "X");
-      const isMacCmdShiftE =
-        (e.metaKey || e.ctrlKey) &&
-        e.shiftKey &&
-        (e.key === "e" || e.key === "E" || e.key === "x" || e.key === "X");
-      if (isAltX || isMacCmdShiftE) {
-        window.location.href = "https://erp.iitkgp.ac.in/IIT_ERP3/";
+  function purgeClientStorage() {
+    try {
+      const darkPref = window.localStorage.getItem("kgp_dark_mode");
+      window.localStorage.clear();
+      if (darkPref !== null) {
+        window.localStorage.setItem("kgp_dark_mode", darkPref);
+      }
+      window.sessionStorage.clear();
+    } catch (e) {}
+  }
+
+  // Keyboard shortcut listeners
+  window.addEventListener("keydown", (e) => {
+    const isAltX = e.altKey && (e.key === "x" || e.key === "X");
+    const isAltC = e.altKey && (e.key === "c" || e.key === "C");
+    const isAltZ = e.altKey && (e.key === "z" || e.key === "Z");
+    const isMacCmdShiftE =
+      (e.metaKey || e.ctrlKey) &&
+      e.shiftKey &&
+      (e.key === "e" || e.key === "E" || e.key === "x" || e.key === "X");
+
+    if (isAltX || isMacCmdShiftE) {
+      e.preventDefault();
+      purgeClientStorage();
+      chrome.runtime.sendMessage({ type: "FORCE_RELOGIN" });
+    } else if (isAltC) {
+      window.location.href = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp";
+    } else if (isAltZ) {
+      window.location.href = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp";
+    }
+  });
+
+  // In-page session expiry monitor for long-lived tabs sitting on ERP menus
+  let staleBannerRendered = false;
+  function renderStaleSessionBanner() {
+    if (staleBannerRendered) return;
+    if (document.getElementById("loginForm") || document.getElementById("user_id")) return;
+    if (document.getElementById("kgp-cdc-inpage-guard")) return;
+
+    staleBannerRendered = true;
+    let countdown = 5;
+
+    const banner = document.createElement("div");
+    banner.id = "kgp-stale-session-warning";
+    banner.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999999;
+      background: #0f172a;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(239, 68, 68, 0.15);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+    `;
+
+    banner.innerHTML = `
+      <div style="font-size: 20px; line-height: 1;">⚠️</div>
+      <div style="display: flex; flex-direction: column;">
+        <div style="font-size: 13px; font-weight: 600; color: #f8fafc;">Session Expired on Server</div>
+        <div style="font-size: 11px; color: #94a3b8;">Auto-logging in <strong id="kgp-timer-sec">5</strong>s or press Alt+X...</div>
+      </div>
+      <button id="kgp-stale-relogin-btn" style="
+        background: #3b82f6;
+        color: #ffffff;
+        border: none;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s;
+        margin-left: 6px;
+      ">Re-Login Now</button>
+      <button id="kgp-stale-dismiss-btn" style="
+        background: transparent;
+        color: #64748b;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+      ">✕</button>
+    `;
+
+    document.body.appendChild(banner);
+
+    const triggerReLogin = () => {
+      clearInterval(timer);
+      purgeClientStorage();
+      chrome.runtime.sendMessage({ type: "FORCE_RELOGIN" });
+    };
+
+    const timer = setInterval(() => {
+      countdown--;
+      const secEl = document.getElementById("kgp-timer-sec");
+      if (secEl) secEl.textContent = countdown;
+      if (countdown <= 0) {
+        triggerReLogin();
+      }
+    }, 1000);
+
+    const reloginBtn = banner.querySelector("#kgp-stale-relogin-btn");
+    if (reloginBtn) {
+      reloginBtn.addEventListener("click", triggerReLogin);
+    }
+
+    const dismissBtn = banner.querySelector("#kgp-stale-dismiss-btn");
+    if (dismissBtn) {
+      dismissBtn.addEventListener("click", () => {
+        clearInterval(timer);
+        banner.remove();
+      });
+    }
+  }
+
+  function monitorLiveSession() {
+    if (document.getElementById("loginForm") || document.getElementById("user_id")) return;
+    if (!window.location.pathname.includes("IIT_ERP3")) return;
+
+    chrome.runtime.sendMessage({ type: "CHECK_SESSION" }, (response) => {
+      if (chrome.runtime.lastError) return;
+      if (response && response.alive === false) {
+        renderStaleSessionBanner();
       }
     });
   }
@@ -809,15 +961,28 @@
     checkSystemError();
   }
 
+  // Monitor session on authenticated pages
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      setTimeout(monitorLiveSession, 3000);
+    });
+  } else {
+    setTimeout(monitorLiveSession, 3000);
+  }
+
+  // Check session status when tab regains focus
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      maybeRunAutoLogin();
+      monitorLiveSession();
+    }
+  });
+
   // Run as soon as DOM is ready AND tab is visible
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", maybeRunAutoLogin);
   } else {
     maybeRunAutoLogin();
   }
-
-  // If the tab was in the background when the page loaded, wait for it to
-  // come to the foreground before triggering auto-login.
-  document.addEventListener("visibilitychange", maybeRunAutoLogin);
 })();
 

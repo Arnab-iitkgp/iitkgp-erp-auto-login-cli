@@ -648,24 +648,27 @@ document.addEventListener("DOMContentLoaded", () => {
     chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
       if (tabs && tabs.length > 0) {
         const existingTab = tabs[0];
-        chrome.tabs.update(existingTab.id, { active: true, url: url });
+        chrome.tabs.update(existingTab.id, { active: true, url });
         chrome.windows.update(existingTab.windowId, { focused: true });
       } else {
-        chrome.tabs.create({ url: url });
+        chrome.tabs.create({ url });
       }
+      window.close();
+    });
+  }
+
+  function launchHome() {
+    chrome.runtime.sendMessage({ type: "LAUNCH_ERP_HOME" }, () => {
+      window.close();
     });
   }
 
   if (launchErpBtn) {
-    launchErpBtn.addEventListener("click", () => {
-      navigateOrOpenTab("https://erp.iitkgp.ac.in/IIT_ERP3/");
-    });
+    launchErpBtn.addEventListener("click", launchHome);
   }
 
   if (quickLaunchHome) {
-    quickLaunchHome.addEventListener("click", () => {
-      navigateOrOpenTab("https://erp.iitkgp.ac.in/IIT_ERP3/");
-    });
+    quickLaunchHome.addEventListener("click", launchHome);
   }
 
   if (quickLaunchNotice) {

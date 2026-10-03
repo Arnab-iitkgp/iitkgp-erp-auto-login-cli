@@ -6,10 +6,10 @@
 const OTP_SUBJECT_REGEX = /OTP for Sign In in ERP Portal of IIT Kharagpur/i;
 const OTP_CODE_REGEX = /\b(\d{6})\b/;
 
-// Session keep-alive: ping ERP every 15 min to prevent idle logout
+// Session keep-alive: ping ERP every 5 min to prevent idle logout
 const SESSION_KEEPALIVE_ALARM = "kgp_erp_session_ping";
-const KEEPALIVE_INTERVAL_MINUTES = 15;
-const KEEPALIVE_URL = "https://erp.iitkgp.ac.in/IIT_ERP3/";
+const KEEPALIVE_INTERVAL_MINUTES = 5;
+const KEEPALIVE_URL = "https://erp.iitkgp.ac.in/IIT_ERP3/home.htm";
 
 // Cache for active polling jobs: { [tabId]: { aborted: boolean } }
 const activePolls = new Map();
@@ -64,18 +64,101 @@ async function detectGmailAccounts(targetEmail = "") {
   };
 }
 
+// --- Feature Flag: Hybrid UID/Message-ID Snapshot Detection ---
+// When enabled, snapshots existing email IDs before OTP dispatch and matches brand-new IDs
+// like the CLI does, falling back to timestamp verification if snapshot is unavailable.
+const ENABLE_UID_SNAPSHOT_DETECTION = true;
+
+/**
+ * Extracts all unique message IDs (<id>...</id>) from the Atom XML.
+ */
+function extractMessageIdsFromAtomXml(xml) {
+  const ids = new Set();
+  const idRegex = /<id>([\s\S]*?)<\/id>/gi;
+  let match;
+  while ((match = idRegex.exec(xml)) !== null) {
+    if (match[1]) ids.add(match[1].trim());
+  }
+  return ids;
+}
+
+/**
+ * Snapshots all current message IDs in the Gmail Atom feed before OTP is triggered.
+ */
+async function snapshotInboxIds(accountIndex = 0) {
+  try {
+    const url = `https://mail.google.com/mail/u/${accountIndex}/feed/atom`;
+    const res = await fetch(url, { method: "GET", credentials: "include" });
+    if (res.ok) {
+      const xml = await res.text();
+      const ids = Array.from(extractMessageIdsFromAtomXml(xml));
+      console.log(`[ERP Background] Captured ${ids.length} inbox message IDs in pre-OTP snapshot`);
+      return { success: true, ids };
+    }
+  } catch (e) {
+    console.warn("[ERP Background] Snapshot inbox IDs error:", e);
+  }
+  return { success: false, ids: [] };
+}
+
+/**
+ * UID/Message-ID based OTP extraction (CLI approach adapted for Atom feed).
+ * Looks for an ERP OTP email whose unique <id> was NOT present in snapshotSet.
+ */
+function extractOtpUsingUidSnapshot(xml, snapshotSet) {
+  const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
+  let entryMatch;
+
+  while ((entryMatch = entryRegex.exec(xml)) !== null) {
+    const entryXml = entryMatch[1];
+    const idMatch = entryXml.match(/<id>([\s\S]*?)<\/id>/i);
+    const titleMatch = entryXml.match(/<title>([\s\S]*?)<\/title>/i);
+    const summaryMatch = entryXml.match(/<summary>([\s\S]*?)<\/summary>/i);
+
+    const title = titleMatch ? titleMatch[1] : "";
+    const summary = summaryMatch ? summaryMatch[1] : "";
+    const isErpEmail = OTP_SUBJECT_REGEX.test(title) || OTP_SUBJECT_REGEX.test(summary);
+
+    if (isErpEmail && idMatch && idMatch[1]) {
+      const entryId = idMatch[1].trim();
+
+      // Check if this is a brand-new message ID that did NOT exist in pre-click snapshot
+      if (!snapshotSet.has(entryId)) {
+        console.log(`[ERP Background] [UID Mode] Detected fresh incoming email with new ID: ${entryId}`);
+
+        let codeMatch = title.match(OTP_CODE_REGEX);
+        if (!codeMatch) {
+          codeMatch = summary.match(OTP_CODE_REGEX);
+        }
+
+        if (codeMatch && codeMatch[1]) {
+          return codeMatch[1];
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Polls the Gmail Atom feed for an ERP OTP email.
  */
-async function pollForOtp({ tabId, accountIndex = 0, startTime = Date.now(), timeoutMs = 90000 }) {
+async function pollForOtp({ tabId, accountIndex = 0, startTime = Date.now(), preSnapshotIds = [], timeoutMs = 90000 }) {
   const pollId = `${tabId}_${Date.now()}`;
   activePolls.set(tabId, { id: pollId, aborted: false });
 
   const url = `https://mail.google.com/mail/u/${accountIndex}/feed/atom`;
   const pollInterval = 2000;
   const deadline = Date.now() + timeoutMs;
+  const snapshotSet = new Set(preSnapshotIds || []);
 
-  console.log(`[ERP Background] Starting OTP poll for tab ${tabId} on account u/${accountIndex}... Timeout: ${timeoutMs}ms`);
+  const storedConfig = await chrome.storage.local.get(["enableUidSnapshot"]);
+  const isUidFeatureEnabled = storedConfig.enableUidSnapshot !== undefined
+    ? Boolean(storedConfig.enableUidSnapshot)
+    : ENABLE_UID_SNAPSHOT_DETECTION;
+
+  console.log(`[ERP Background] Starting OTP poll for tab ${tabId} on account u/${accountIndex}... Timeout: ${timeoutMs}ms (UID feature flag: ${isUidFeatureEnabled}, snapshot: ${snapshotSet.size} items)`);
 
   while (Date.now() < deadline) {
     const job = activePolls.get(tabId);
@@ -97,7 +180,18 @@ async function pollForOtp({ tabId, accountIndex = 0, startTime = Date.now(), tim
 
       if (res.ok) {
         const xml = await res.text();
-        const otp = extractOtpFromAtomXml(xml, startTime);
+        let otp = null;
+
+        // 1. If feature flag enabled and snapshot available, check UID approach first
+        if (isUidFeatureEnabled && snapshotSet.size > 0) {
+          otp = extractOtpUsingUidSnapshot(xml, snapshotSet);
+        }
+
+        // 2. Existing logic (preserved completely as fallback / default)
+        if (!otp) {
+          otp = extractOtpFromAtomXml(xml, startTime);
+        }
+
         if (otp) {
           console.log(`[ERP Background] Successfully extracted OTP: ${otp}`);
           activePolls.delete(tabId);
@@ -295,11 +389,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.type === "SNAPSHOT_OTP_INBOX") {
+    snapshotInboxIds(request.accountIndex ?? 0).then(sendResponse);
+    return true;
+  }
+
   if (request.type === "START_OTP_POLL") {
     pollForOtp({
       tabId,
       accountIndex: request.accountIndex ?? 0,
       startTime: request.startTime || Date.now(),
+      preSnapshotIds: request.preSnapshotIds || [],
       timeoutMs: request.timeoutMs || 90000,
     }).then(sendResponse);
     return true;
@@ -313,79 +413,224 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ success: true });
     return false;
   }
+
+  if (request.type === "CHECK_SESSION") {
+    isSessionAlive().then((alive) => sendResponse({ alive }));
+    return true;
+  }
+
+  if (request.type === "LAUNCH_ERP_HOME") {
+    launchErpHome().then(() => sendResponse({ success: true }));
+    return true;
+  }
+
+  if (request.type === "FORCE_RELOGIN") {
+    const targetTabId = sender.tab ? sender.tab.id : null;
+    forceReLogin(targetTabId).then(() => sendResponse({ success: true }));
+    return true;
+  }
 });
 
-// Quick Launch Hotkey Command Handler (Alt+Shift+E / Cmd+Shift+E)
+/**
+ * Exact CLI sessionAlive check:
+ * Uses the saved latestSsoToken (or live cookie) and probes:
+ *   GET /IIT_ERP3/home.htm?ssoToken=${ssoToken}
+ * If ERP redirects to logout.htm or login.htm -> DEAD!
+ * If not -> ALIVE!
+ */
+async function isSessionAlive() {
+  try {
+    let ssoToken = "";
+
+    // 1. Check live ssoToken cookie
+    if (chrome.cookies) {
+      const cookie = await chrome.cookies.get({
+        url: "https://erp.iitkgp.ac.in",
+        name: "ssoToken",
+      });
+      if (cookie && cookie.value) {
+        ssoToken = cookie.value;
+        chrome.storage.local.set({ latestSsoToken: ssoToken });
+      }
+    }
+
+    // 2. If cookie was not retrieved, fall back to stored token
+    if (!ssoToken) {
+      const stored = await chrome.storage.local.get(["latestSsoToken"]);
+      if (stored && stored.latestSsoToken) {
+        ssoToken = stored.latestSsoToken;
+      }
+    }
+
+    // If no token exists anywhere, session is definitely dead
+    if (!ssoToken) {
+      return false;
+    }
+
+    // 3. Exact CLI check: GET /IIT_ERP3/home.htm?ssoToken=...
+    const testUrl = `https://erp.iitkgp.ac.in/IIT_ERP3/home.htm?ssoToken=${encodeURIComponent(ssoToken)}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(testUrl, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    const finalUrl = res.url || "";
+    if (
+      !res.ok ||
+      finalUrl.includes("logout") ||
+      finalUrl.includes("login") ||
+      finalUrl.includes("SSOAdministration")
+    ) {
+      chrome.storage.local.remove(["latestSsoToken"]);
+      return false;
+    }
+
+    const text = await res.text();
+    if (
+      text.includes("Some system error occurred") ||
+      text.includes("loginForm") ||
+      text.includes("Session Expired")
+    ) {
+      chrome.storage.local.remove(["latestSsoToken"]);
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Navigation helper: activate existing tab or create new one
+function navigateOrOpenTab(url) {
+  chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
+    if (tabs && tabs.length > 0) {
+      const tab = tabs[0];
+      chrome.windows.update(tab.windowId, { focused: true });
+      if (tab.url === url) {
+        chrome.tabs.update(tab.id, { active: true }, () => {
+          chrome.tabs.reload(tab.id);
+        });
+      } else {
+        chrome.tabs.update(tab.id, { active: true, url });
+      }
+    } else {
+      chrome.tabs.create({ url });
+    }
+  });
+}
+
+/**
+ * Completely purges stale ERP session, cookies, and local cache.
+ * 1. Pings /SSOAdministration/logout.htm so the server invalidates session.
+ * 2. Uses chrome.cookies.remove to delete JSESSIONID, ssoToken, and LAST_ACCESS_TIME.
+ * 3. Removes stored tokens from storage.
+ */
+async function forceLogoutAndPurge() {
+  console.log("[ERP Background] Purging stale ERP session, cookies, and cache...");
+
+  // 1. Tell ERP server to invalidate session on its end
+  try {
+    await fetch("https://erp.iitkgp.ac.in/SSOAdministration/logout.htm", {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+  } catch (e) {}
+
+  // 2. Remove all ERP cookies (including HttpOnly JSESSIONID, ssoToken, LAST_ACCESS_TIME)
+  try {
+    if (chrome.cookies) {
+      const cookies = await chrome.cookies.getAll({ domain: "erp.iitkgp.ac.in" });
+      for (const c of cookies) {
+        const domain = c.domain.startsWith(".") ? c.domain.substring(1) : c.domain;
+        const cookieUrl = `https://${domain}${c.path || "/"}`;
+        await chrome.cookies.remove({
+          url: cookieUrl,
+          name: c.name,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[ERP Background] Error removing cookies:", e);
+  }
+
+  // 3. Clear stored tokens
+  try {
+    await chrome.storage.local.remove(["latestSsoToken"]);
+    if (chrome.storage && chrome.storage.session) {
+      await chrome.storage.session.remove(["latestSsoToken", "postLoginRedirect"]);
+    }
+  } catch (e) {}
+}
+
+/**
+ * Purges stale session and forcefully opens the fresh login page.
+ * Without cookies, /IIT_ERP3/ is guaranteed to 302 redirect to /SSOAdministration/login.htm.
+ */
+async function forceReLogin(tabId = null) {
+  await forceLogoutAndPurge();
+
+  const loginUrl = "https://erp.iitkgp.ac.in/IIT_ERP3/";
+
+  if (tabId) {
+    chrome.tabs.update(tabId, { active: true, url: loginUrl });
+  } else {
+    chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
+      if (tabs && tabs.length > 0) {
+        chrome.tabs.update(tabs[0].id, { active: true, url: loginUrl });
+        chrome.windows.update(tabs[0].windowId, { focused: true });
+      } else {
+        chrome.tabs.create({ url: loginUrl });
+      }
+    });
+  }
+}
+
+/**
+ * Alt+X Handler:
+ * - If session is alive: opens/switches to ERP Home (showmenu.htm).
+ * - If session is dead: purges cookies and opens login page to auto-login.
+ */
+async function launchErpHome() {
+  const alive = await isSessionAlive();
+  console.log(`[ERP Background] Alt+X sessionAlive: ${alive}`);
+  if (alive) {
+    navigateOrOpenTab("https://erp.iitkgp.ac.in/IIT_ERP3/showmenu.htm");
+  } else {
+    await forceReLogin();
+  }
+}
+
+// Quick Launch Hotkey Command Handler (Alt+X / Alt+C / Alt+Z)
 chrome.commands.onCommand.addListener((command) => {
-  if (command === "quick_launch_erp") {
-    chrome.storage.local.get(["hotkeyEnabled"], (data) => {
-      if (data.hotkeyEnabled === false) return;
+  chrome.storage.local.get(["hotkeyEnabled"], (data) => {
+    if (data.hotkeyEnabled === false) return;
 
-      const erpUrl = "https://erp.iitkgp.ac.in/IIT_ERP3/";
-
-      chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
-        if (tabs && tabs.length > 0) {
-          const existingTab = tabs[0];
-          // Always navigate to home — even if already on a different ERP page
-          chrome.tabs.update(existingTab.id, { active: true, url: erpUrl });
-          chrome.windows.update(existingTab.windowId, { focused: true });
-        } else {
-          chrome.tabs.create({ url: erpUrl });
-        }
-      });
-    });
-  }
-
-  // Alt+C — Jump straight to CDC Notice Board (always fresh)
-  if (command === "quick_launch_cdc") {
-    chrome.storage.local.get(["hotkeyEnabled"], (data) => {
-      if (data.hotkeyEnabled === false) return;
-
-      const cdcNoticeUrl = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp";
-
-      chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
-        if (tabs && tabs.length > 0) {
-          const tab = tabs[0];
-          chrome.tabs.update(tab.id, { active: true, url: cdcNoticeUrl });
-          chrome.windows.update(tab.windowId, { focused: true });
-        } else {
-          chrome.tabs.create({ url: cdcNoticeUrl });
-        }
-      });
-    });
-  }
-
-  // Alt+Z — Jump to CDC Placement/Internship Applications (always fresh)
-  if (command === "quick_launch_cdc_app") {
-    chrome.storage.local.get(["hotkeyEnabled"], (data) => {
-      if (data.hotkeyEnabled === false) return;
-
-      const cdcAppUrl = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp";
-
-      chrome.tabs.query({ url: "*://erp.iitkgp.ac.in/*" }, (tabs) => {
-        if (tabs && tabs.length > 0) {
-          const tab = tabs[0];
-          chrome.tabs.update(tab.id, { active: true, url: cdcAppUrl });
-          chrome.windows.update(tab.windowId, { focused: true });
-        } else {
-          chrome.tabs.create({ url: cdcAppUrl });
-        }
-      });
-    });
-  }
+    if (command === "quick_launch_erp") {
+      launchErpHome();
+    } else if (command === "quick_launch_cdc") {
+      navigateOrOpenTab("https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp");
+    } else if (command === "quick_launch_cdc_app") {
+      navigateOrOpenTab("https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp");
+    }
+  });
 });
 
 // --- ERP Session Keep-Alive ---
 // Registers a repeating alarm to prevent the ERP server from expiring
 // an idle session. Only fires the ping when an ERP tab is actually open.
 function registerKeepAliveAlarm() {
-  chrome.alarms.get(SESSION_KEEPALIVE_ALARM, (existing) => {
-    if (!existing) {
-      chrome.alarms.create(SESSION_KEEPALIVE_ALARM, {
-        delayInMinutes: KEEPALIVE_INTERVAL_MINUTES,
-        periodInMinutes: KEEPALIVE_INTERVAL_MINUTES,
-      });
-    }
+  chrome.alarms.create(SESSION_KEEPALIVE_ALARM, {
+    delayInMinutes: KEEPALIVE_INTERVAL_MINUTES,
+    periodInMinutes: KEEPALIVE_INTERVAL_MINUTES,
   });
 }
 
@@ -404,7 +649,16 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       credentials: "include",
       cache: "no-store",
     });
-    console.log(`[ERP Background] Session ping OK (${res.status})`);
+    const finalUrl = res.url || "";
+    if (
+      finalUrl.includes("logout") ||
+      finalUrl.includes("login") ||
+      finalUrl.includes("SSOAdministration")
+    ) {
+      console.warn("[ERP Background] Keep-alive detected session has expired on server.");
+    } else {
+      console.log(`[ERP Background] Session keep-alive ping OK (${res.status})`);
+    }
   } catch (err) {
     console.warn("[ERP Background] Session ping failed:", err.message);
   }
