@@ -356,7 +356,7 @@
     }
 
     chrome.storage.local.get(
-      ["erpRoll", "erpPassword", "securityQuestions", "autoLogin", "gmailAccountIndex"],
+      ["erpRoll", "erpPassword", "securityQuestions", "autoLogin", "gmailAccountIndex", "otpFetchMode"],
       async (stored) => {
         const autoLoginEnabled = stored.autoLogin !== false;
         if (!autoLoginEnabled) return;
@@ -485,7 +485,38 @@
           attemptWindowStart: windowStart || now,
         });
 
-        // 4. Start Gmail Polling with 90s timeout
+        // 4. Branch based on OTP Fetch Mode (Auto vs Manual)
+        const otpMode = stored.otpFetchMode || "auto";
+
+        if (otpMode === "manual") {
+          updateBannerStatus("✔ Credentials filled &amp; OTP requested! Enter code to finish sign-in.", "success");
+          if (otpInput) {
+            otpInput.classList.add("kgp-input-highlight");
+            otpInput.focus();
+
+            // Auto-submit as soon as the user finishes typing 6 digits
+            otpInput.addEventListener("input", () => {
+              const val = otpInput.value.trim();
+              if (val.length === 6) {
+                updateBannerStatus(`Submitting OTP <strong>${val}</strong>...`, "info");
+                setTimeout(() => {
+                  if (submitBtn) {
+                    submitBtn.classList.remove("d-none");
+                    submitBtn.click();
+                  } else if (loginForm) {
+                    loginForm.submit();
+                  }
+                }, 300);
+              }
+            });
+          }
+          if (submitBtn) {
+            submitBtn.classList.remove("d-none");
+          }
+          return;
+        }
+
+        // 4b. Start Gmail Polling with 90s timeout (Auto Mode)
         startCountdown(90);
         updateBannerStatus("Request sent! Checking your Gmail for incoming OTP...", "info");
 

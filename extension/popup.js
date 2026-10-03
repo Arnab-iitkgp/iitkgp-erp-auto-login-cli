@@ -84,6 +84,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const darkModeBtns = document.querySelectorAll(".trigger-dark-mode-btn");
   let isDarkMode = false;
 
+  // --- OTP Fetch Mode Elements ---
+  const otpAutoBtn = document.getElementById("otpAutoBtn");
+  const otpManualBtn = document.getElementById("otpManualBtn");
+  const dashOtpModeDesc = document.getElementById("dashOtpModeDesc");
+
   // Cached state
   let currentStoredData = {};
 
@@ -275,11 +280,48 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================================================================
   // View Switcher (Dashboard vs Setup/Edit Mode)
   // =========================================================================
+  function updateOtpModeUI(mode) {
+    const isAuto = mode !== "manual";
+    if (otpAutoBtn) otpAutoBtn.classList.toggle("active", isAuto);
+    if (otpManualBtn) otpManualBtn.classList.toggle("active", !isAuto);
+    if (dashOtpModeDesc) {
+      dashOtpModeDesc.textContent = isAuto ? "Auto (Gmail)" : "Manual";
+    }
+    if (dashEmailBadge && currentStoredData) {
+      if (!isAuto) {
+        dashEmailBadge.textContent = "Manual Mode";
+        dashEmailBadge.className = "summary-badge summary-badge-muted";
+      } else {
+        dashEmailBadge.textContent = currentStoredData.gmailEmail ? "✓ Verified" : "Not Linked";
+        dashEmailBadge.className = "summary-badge";
+      }
+    }
+  }
+
+  if (otpAutoBtn) {
+    otpAutoBtn.addEventListener("click", () => {
+      currentStoredData.otpFetchMode = "auto";
+      updateOtpModeUI("auto");
+      chrome.storage.local.set({ otpFetchMode: "auto" });
+      showToast("OTP Mode: Auto-fetch from Gmail", "info");
+    });
+  }
+
+  if (otpManualBtn) {
+    otpManualBtn.addEventListener("click", () => {
+      currentStoredData.otpFetchMode = "manual";
+      updateOtpModeUI("manual");
+      chrome.storage.local.set({ otpFetchMode: "manual" });
+      showToast("OTP Mode: Manual entry (Gmail skipped)", "info");
+    });
+  }
+
   function renderDashboard(data) {
     currentStoredData = data;
     dashRoll.textContent = data.erpRoll || "Not set";
     dashEmail.textContent = data.gmailEmail || "Not linked";
     updateDashEmailBrand(data.gmailEmail || "");
+    updateOtpModeUI(data.otpFetchMode || "auto");
 
     const qCount = data.securityQuestions && typeof data.securityQuestions === "object"
       ? Object.keys(data.securityQuestions).length
@@ -319,9 +361,11 @@ document.addEventListener("DOMContentLoaded", () => {
         "autoLogin",
         "hotkeyEnabled",
         "erpDarkMode",
+        "otpFetchMode",
       ],
       (data) => {
         currentStoredData = data || {};
+        updateOtpModeUI(data.otpFetchMode || "auto");
 
         if (data.autoLogin !== undefined) {
           autoLoginToggle.checked = Boolean(data.autoLogin);
@@ -718,6 +762,14 @@ document.addEventListener("DOMContentLoaded", () => {
     faqIssueLink.addEventListener("click", (e) => {
       e.preventDefault();
       chrome.tabs.create({ url: "https://github.com/Arnab-iitkgp/erp-auto-login-cli/issues" });
+    });
+  }
+
+  const helpGithubLink = document.getElementById("helpGithubLink");
+  if (helpGithubLink) {
+    helpGithubLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      chrome.tabs.create({ url: "https://github.com/Arnab-iitkgp/erp-auto-login-cli" });
     });
   }
 

@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "KGP ERP Auto-Login",
+  "name": "IIT KGP ERP Auto-Login",
+  "short_name": "KGP ERP",
   "version": "1.0.0",
   "description": "Automated, secure 1-click login for IIT Kharagpur ERP with Gmail OTP detection.",
   "permissions": [

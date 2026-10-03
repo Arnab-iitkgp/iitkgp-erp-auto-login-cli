@@ -50,7 +50,7 @@ Works on Chrome, Brave, Edge, and other Chromium browsers.
 
 - **Logs in automatically**: When you open ERP, it fills your credentials, answers the security question, reads the OTP from your signed-in Gmail tab, and submits. No Gmail app passwords or IMAP setup needed.
 - **Dark mode**: A full dark theme for ERP that doesn't flash white on page loads. Covers menus, grade tables, CDC notices, and popups.
-- **Quick launch shortcut**: Press `Alt + Shift + E` (`Cmd + Shift + E` on Mac) anywhere in your browser to open ERP or jump straight to your existing ERP tab.
+- **Quick launch shortcuts**: Press `Alt + X` (`Cmd + Shift + E` on Mac) anywhere in your browser to open ERP and auto-login. Jump directly to CDC Notices with `Alt + C` or CDC Applications with `Alt + Z`.
 - **Password-protect settings**: Lock your saved credentials behind your ERP password so friends using your laptop can't open your settings.
 - **Doesn't get stuck**: If an OTP takes longer than 90s or Gmail isn't signed in, it highlights the OTP box and lets you enter it manually instead of refreshing endlessly.
 - **Built-in FAQ**: Quick answers in the popup for multi-account Gmail setups and login issues. Still running into problems? [Open an issue on GitHub](https://github.com/Arnab-iitkgp/erp-auto-login-cli/issues).
@@ -74,14 +74,18 @@ Works on Chrome, Brave, Edge, and other Chromium browsers.
 That's it. Next time you visit ERP, it logs in on its own.
 
 <a id="extension-shortcut"></a>
-### Extension Shortcut
+### Extension Shortcuts
 
 | OS | Shortcut | Action |
 | --- | --- | --- |
-| **Windows / Linux** | `Alt + Shift + E` | Open ERP or switch to existing ERP tab |
-| **macOS** | `Cmd + Shift + E` | Open ERP or switch to existing ERP tab |
+| **Windows / Linux** | `Alt + X` | Quick launch & auto-login to ERP |
+| **Windows / Linux** | `Alt + C` | Jump directly to CDC Notice Board |
+| **Windows / Linux** | `Alt + Z` | Jump directly to CDC Applications |
+| **macOS** | `Cmd + Shift + E` | Quick launch & auto-login to ERP |
+| **macOS** | `Cmd + Shift + C` | Jump directly to CDC Notice Board |
+| **macOS** | `Cmd + Shift + Z` | Jump directly to CDC Applications |
 
-*(You can customize this hotkey anytime at `chrome://extensions/shortcuts`)*
+*(You can customize these hotkeys anytime at `chrome://extensions/shortcuts`)*
 
 ---
 
@@ -236,6 +240,7 @@ The CLI works on headless servers, WSL, and Android via Termux. When an OS keych
 - **Keychain Protected**: The CLI stores secrets in your OS's native credential vault (`@napi-rs/keyring`). The extension keeps data in Chrome's isolated storage sandbox (`chrome.storage.local`).
 - **Direct Communication**: Both tools talk only to `erp.iitkgp.ac.in` and `mail.google.com` / `imap.gmail.com`.
 - **Open Source**: Every line of code is open for review. Inspect the repository anytime.
+- **Privacy Policy**: Read the full [Privacy Policy](./PRIVACY_POLICY.md) for Chrome Web Store details.
 
 ---
 
