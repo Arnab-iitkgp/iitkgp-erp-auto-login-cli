@@ -50,10 +50,9 @@
   // Synchronous execution at document_start eliminates white flash before first paint
   try {
     const isDarkStored = localStorage.getItem("kgp_dark_mode");
-    // Default to true if user hasn't explicitly disabled it
-    if (isDarkStored !== "false") {
+    // Only activate dark mode if explicitly enabled by user
+    if (isDarkStored === "true") {
       document.documentElement.classList.add("kgp-dark-mode");
-      localStorage.setItem("kgp_dark_mode", "true");
 
       const instantDarkStyle = document.createElement("style");
       instantDarkStyle.id = "kgp-instant-dark-preload";
@@ -105,9 +104,7 @@
   // Sync preference with chrome.storage.local
   try {
     chrome.storage.local.get(["erpDarkMode"], (data) => {
-      if (data && data.erpDarkMode !== undefined) {
-        applyDarkMode(Boolean(data.erpDarkMode));
-      }
+      applyDarkMode(Boolean(data?.erpDarkMode));
     });
   } catch {}
 
@@ -350,13 +347,14 @@
         window.sessionStorage.removeItem("kgp_autoOtpAttempts");
         window.sessionStorage.removeItem("kgp_attemptWindowStart");
         window.sessionStorage.removeItem("kgp_lastSubmittedOtp");
+        window.sessionStorage.removeItem("kgp_manual_otp_sent");
       } catch {}
 
       return;
     }
 
     chrome.storage.local.get(
-      ["erpRoll", "erpPassword", "securityQuestions", "autoLogin", "gmailAccountIndex", "otpFetchMode"],
+      ["erpRoll", "erpPassword", "gmailEmail", "securityQuestions", "autoLogin", "gmailAccountIndex", "otpFetchMode"],
       async (stored) => {
         const autoLoginEnabled = stored.autoLogin !== false;
         if (!autoLoginEnabled) return;
@@ -460,7 +458,45 @@
           return;
         }
 
-        // 3. Request OTP
+        // 3. Branch based on OTP Fetch Mode (Auto vs Manual)
+        const otpMode = (!stored.gmailEmail || stored.otpFetchMode === "manual") ? "manual" : "auto";
+
+        if (otpMode === "manual") {
+          const manualOtpLockKey = "kgp_manual_otp_sent";
+          const hasSentOtpInSession = window.sessionStorage.getItem(manualOtpLockKey);
+
+          // Click Get OTP only once per login session — never re-trigger on cooldown expiry or tab switch
+          if (!hasSentOtpInSession) {
+            updateBannerStatus("Requesting OTP from ERP...", "info");
+            window.sessionStorage.setItem(manualOtpLockKey, Date.now().toString());
+
+            if (getOtpBtn) {
+              getOtpBtn.click();
+            } else {
+              const s = document.createElement("script");
+              s.textContent = `if(typeof getEmailOTP==="function") getEmailOTP("SI");`;
+              document.documentElement.appendChild(s);
+              s.remove();
+            }
+
+            await new Promise((r) => setTimeout(r, 1200));
+            dismissSweetAlert();
+          }
+
+          updateBannerStatus("✔ Credentials filled &amp; OTP sent! Enter your code and click Log In.", "success");
+          if (otpInput) {
+            otpInput.classList.add("kgp-input-highlight");
+            otpInput.focus();
+          }
+          if (submitBtn) {
+            submitBtn.classList.remove("d-none");
+          }
+
+          // In manual mode, stop executing here — do not auto-poll and do not auto-submit
+          return;
+        }
+
+        // 4. Auto Mode: Request OTP and start Gmail polling
         updateBannerStatus("Requesting OTP from ERP...", "info");
         const startTime = Date.now();
 
@@ -484,38 +520,6 @@
           autoOtpAttempts: attempts,
           attemptWindowStart: windowStart || now,
         });
-
-        // 4. Branch based on OTP Fetch Mode (Auto vs Manual)
-        // If no email is configured, automatically fallback to manual mode
-        const otpMode = (!stored.gmailEmail || stored.otpFetchMode === "manual") ? "manual" : "auto";
-
-        if (otpMode === "manual") {
-          updateBannerStatus("✔ Credentials filled &amp; OTP requested! Enter code to finish sign-in.", "success");
-          if (otpInput) {
-            otpInput.classList.add("kgp-input-highlight");
-            otpInput.focus();
-
-            // Auto-submit as soon as the user finishes typing 6 digits
-            otpInput.addEventListener("input", () => {
-              const val = otpInput.value.trim();
-              if (val.length === 6) {
-                updateBannerStatus(`Submitting OTP <strong>${val}</strong>...`, "info");
-                setTimeout(() => {
-                  if (submitBtn) {
-                    submitBtn.classList.remove("d-none");
-                    submitBtn.click();
-                  } else if (loginForm) {
-                    loginForm.submit();
-                  }
-                }, 300);
-              }
-            });
-          }
-          if (submitBtn) {
-            submitBtn.classList.remove("d-none");
-          }
-          return;
-        }
 
         // 4b. Start Gmail Polling with 90s timeout (Auto Mode)
         startCountdown(90);
