@@ -281,18 +281,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // View Switcher (Dashboard vs Setup/Edit Mode)
   // =========================================================================
   function updateOtpModeUI(mode) {
-    const isAuto = mode !== "manual";
+    const hasEmail = Boolean(currentStoredData?.gmailEmail);
+    const isAuto = mode !== "manual" && hasEmail;
     if (otpAutoBtn) otpAutoBtn.classList.toggle("active", isAuto);
     if (otpManualBtn) otpManualBtn.classList.toggle("active", !isAuto);
     if (dashOtpModeDesc) {
       dashOtpModeDesc.textContent = isAuto ? "Auto (Gmail)" : "Manual";
     }
-    if (dashEmailBadge && currentStoredData) {
-      if (!isAuto) {
+    if (dashEmailBadge) {
+      if (!hasEmail) {
+        dashEmailBadge.textContent = "Manual Only";
+        dashEmailBadge.className = "summary-badge summary-badge-muted";
+      } else if (!isAuto) {
         dashEmailBadge.textContent = "Manual Mode";
         dashEmailBadge.className = "summary-badge summary-badge-muted";
       } else {
-        dashEmailBadge.textContent = currentStoredData.gmailEmail ? "✓ Verified" : "Not Linked";
+        dashEmailBadge.textContent = "✓ Verified";
         dashEmailBadge.className = "summary-badge";
       }
     }
@@ -300,6 +304,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (otpAutoBtn) {
     otpAutoBtn.addEventListener("click", () => {
+      if (!currentStoredData?.gmailEmail) {
+        showToast("Add your email in Settings first to use Auto OTP mode.", "warning");
+        return;
+      }
       currentStoredData.otpFetchMode = "auto";
       updateOtpModeUI("auto");
       chrome.storage.local.set({ otpFetchMode: "auto" });
@@ -319,9 +327,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderDashboard(data) {
     currentStoredData = data;
     dashRoll.textContent = data.erpRoll || "Not set";
-    dashEmail.textContent = data.gmailEmail || "Not linked";
+    dashEmail.textContent = data.gmailEmail || "Not added";
     updateDashEmailBrand(data.gmailEmail || "");
-    updateOtpModeUI(data.otpFetchMode || "auto");
+    updateOtpModeUI(data.otpFetchMode || (data.gmailEmail ? "auto" : "manual"));
 
     const qCount = data.securityQuestions && typeof data.securityQuestions === "object"
       ? Object.keys(data.securityQuestions).length
@@ -585,20 +593,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const questionsMap = {};
     const rows = qaContainer.querySelectorAll(".qa-split-row");
+    let firstEmptyAnswerInput = null;
+    let firstEmptyQuestionInput = null;
+
     rows.forEach((row) => {
-      const q = row.querySelector(".qa-question-input")?.value.trim();
-      const a = row.querySelector(".qa-answer-input")?.value.trim();
+      const qInput = row.querySelector(".qa-question-input");
+      const aInput = row.querySelector(".qa-answer-input");
+      const q = qInput?.value.trim();
+      const a = aInput?.value.trim();
+
+      if (!q && !firstEmptyQuestionInput) firstEmptyQuestionInput = qInput;
+      if (!a && !firstEmptyAnswerInput) firstEmptyAnswerInput = aInput;
+
       if (q && a) {
         questionsMap[q] = a;
       }
     });
 
+    if (Object.keys(questionsMap).length < 3) {
+      showToast("Please fill all 3 security questions and answers.", "error");
+      if (firstEmptyAnswerInput) {
+        firstEmptyAnswerInput.focus();
+      } else if (firstEmptyQuestionInput) {
+        firstEmptyQuestionInput.focus();
+      }
+      return;
+    }
+
+    const emailVal = gmailEmail.value.trim();
+    // If no email entered, default OTP mode to manual; otherwise maintain chosen mode
+    const otpMode = emailVal ? (currentStoredData.otpFetchMode || "auto") : "manual";
+
     const settings = {
       erpRoll: erpRoll.value.trim(),
       erpPassword: erpPassword.value,
-      gmailEmail: gmailEmail.value.trim(),
+      gmailEmail: emailVal,
       gmailAccountIndex: parseInt(gmailAccountIndex.value, 10) || 0,
       securityQuestions: questionsMap,
+      otpFetchMode: otpMode,
       autoLogin: autoLoginToggle.checked,
     };
 
