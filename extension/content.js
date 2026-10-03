@@ -486,7 +486,8 @@
         });
 
         // 4. Branch based on OTP Fetch Mode (Auto vs Manual)
-        const otpMode = stored.otpFetchMode || "auto";
+        // If no email is configured, automatically fallback to manual mode
+        const otpMode = (!stored.gmailEmail || stored.otpFetchMode === "manual") ? "manual" : "auto";
 
         if (otpMode === "manual") {
           updateBannerStatus("✔ Credentials filled &amp; OTP requested! Enter code to finish sign-in.", "success");
