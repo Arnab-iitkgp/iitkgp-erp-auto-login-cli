@@ -339,23 +339,32 @@
     const loginForm = document.getElementById("loginForm");
     const userIdInput = document.getElementById("user_id");
     if (!loginForm || !userIdInput) {
-      // If inside ERP (logged in), clear session attempt counters for future logins
-      try {
-        if (chrome?.storage?.session?.remove) {
-          chrome.storage.session.remove(["autoOtpAttempts", "attemptWindowStart", "lastSubmittedOtp"]);
-        }
-        window.sessionStorage.removeItem("kgp_autoOtpAttempts");
-        window.sessionStorage.removeItem("kgp_attemptWindowStart");
-        window.sessionStorage.removeItem("kgp_lastSubmittedOtp");
-        window.sessionStorage.removeItem("kgp_manual_otp_sent");
+      // Only clear session flags when we're on an AUTHENTICATED ERP page (/IIT_ERP3/),
+      // NOT on intermediate SSO redirect pages (auth.htm, logout.htm) which also lack loginForm.
+      // Clearing flags on those pages would wipe kgp_manual_otp_requested mid-redirect,
+      // causing the extension to re-request OTP when landing back on the login page.
+      const isAuthenticatedPage = window.location.pathname.includes("IIT_ERP3");
+      if (isAuthenticatedPage) {
+        try {
+          if (chrome?.storage?.session?.remove) {
+            chrome.storage.session.remove(["autoOtpAttempts", "attemptWindowStart", "lastSubmittedOtp"]);
+          }
+          window.sessionStorage.removeItem("kgp_autoOtpAttempts");
+          window.sessionStorage.removeItem("kgp_attemptWindowStart");
+          window.sessionStorage.removeItem("kgp_lastSubmittedOtp");
+          window.sessionStorage.removeItem("kgp_manual_otp_sent");
+          window.sessionStorage.removeItem("kgp_manual_otp_requested");
+        } catch {}
+      }
 
-        // Save latest ssoToken for CLI-style sessionAlive check
+      // Save latest ssoToken on any ERP page (for sessionAlive checks)
+      try {
         const urlParams = new URLSearchParams(window.location.search);
-        const ssoUrl = urlParams.get("ssoToken");
+        const ssoUrl = urlParams.get("ssoToken") || urlParams.get("ssotoken");
         if (ssoUrl) {
           chrome.storage.local.set({ latestSsoToken: ssoUrl });
         } else {
-          const match = document.cookie.match(/\bssoToken=([^;]+)/);
+          const match = document.cookie.match(/\bssoToken=([^;]+)/i);
           if (match && match[1]) {
             chrome.storage.local.set({ latestSsoToken: match[1] });
           }
@@ -381,11 +390,19 @@
         }
 
         // --- Layer 3: Retry counter ---
-        // Check how many auto-OTP attempts we've made recently
-        const sessionData = await getSessionStorage(["autoOtpAttempts", "attemptWindowStart", "lastSubmittedOtp"]);
+        // Uses window.sessionStorage ONLY (per-tab) so counter resets when tab is closed.
+        // chrome.storage.session is extension-wide and would persist across tab closes, locking users out.
+        let attempts = 0;
+        let windowStart = 0;
+        try {
+          const rawAttempts = window.sessionStorage.getItem("kgp_autoOtpAttempts");
+          const rawWindow = window.sessionStorage.getItem("kgp_attemptWindowStart");
+          if (rawAttempts !== null) attempts = JSON.parse(rawAttempts);
+          if (rawWindow !== null) windowStart = JSON.parse(rawWindow);
+        } catch {}
 
-        let attempts = sessionData.autoOtpAttempts || 0;
-        let windowStart = sessionData.attemptWindowStart || 0;
+        // Also read lastSubmittedOtp for dedup (still from both sources as fallback)
+        const sessionData = await getSessionStorage(["lastSubmittedOtp"]);
         const now = Date.now();
 
         // Reset counter if window has expired
@@ -455,7 +472,7 @@
         if (skipOtpAutomation) {
           createOverlayBanner();
           updateBannerStatus(
-            `Auto-login tried <strong>${MAX_AUTO_OTP_ATTEMPTS} times</strong> without success. Please click <em>Send OTP</em> and enter the OTP manually.`,
+            `Auto-login tried <strong>${MAX_AUTO_OTP_ATTEMPTS} times</strong> without success. Please click <em>Send OTP</em> and enter the OTP manually.<br><span style="font-size:11px;opacity:0.7;margin-top:4px;display:inline-block;">💡 To retry auto-login, close this tab and open a new one.</span>`,
             "warning"
           );
 
@@ -474,13 +491,11 @@
         const otpMode = (!stored.gmailEmail || stored.otpFetchMode === "manual") ? "manual" : "auto";
 
         if (otpMode === "manual") {
-          const manualOtpLockKey = "kgp_manual_otp_sent";
-          const hasSentOtpInSession = window.sessionStorage.getItem(manualOtpLockKey);
+          const alreadyRequestedInSession = window.sessionStorage.getItem("kgp_manual_otp_requested");
 
-          // Click Get OTP only once per login session — never re-trigger on cooldown expiry or tab switch
-          if (!hasSentOtpInSession) {
+          if (!alreadyRequestedInSession) {
             updateBannerStatus("Requesting OTP from ERP...", "info");
-            window.sessionStorage.setItem(manualOtpLockKey, Date.now().toString());
+            window.sessionStorage.setItem("kgp_manual_otp_requested", "true");
 
             if (getOtpBtn) {
               getOtpBtn.click();
@@ -493,18 +508,34 @@
 
             await new Promise((r) => setTimeout(r, 1200));
             dismissSweetAlert();
+            updateBannerStatus("✔ Credentials filled &amp; OTP sent! Enter your code and click <strong>Log In</strong>.", "success");
+          } else {
+            updateBannerStatus("✔ Credentials filled! Enter your OTP and click <strong>Log In</strong>.", "info");
           }
 
-          updateBannerStatus("✔ Credentials filled &amp; OTP sent! Enter your code and click Log In.", "success");
           if (otpInput) {
             otpInput.classList.add("kgp-input-highlight");
             otpInput.focus();
+
+            // Allow pressing Enter in the OTP field to submit
+            otpInput.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (submitBtn) {
+                  submitBtn.classList.remove("d-none");
+                  submitBtn.click();
+                } else if (loginForm) {
+                  loginForm.submit();
+                }
+              }
+            });
           }
+
           if (submitBtn) {
             submitBtn.classList.remove("d-none");
           }
 
-          // In manual mode, stop executing here — do not auto-poll and do not auto-submit
+          // In manual mode, NEVER auto-submit on typing — user enters OTP and clicks Log In
           return;
         }
 
@@ -543,12 +574,12 @@
         await new Promise((r) => setTimeout(r, 1200));
         dismissSweetAlert();
 
-        // Increment attempt counter AFTER OTP is requested
+        // Increment attempt counter AFTER OTP is requested (per-tab only)
         attempts += 1;
-        await setSessionStorage({
-          autoOtpAttempts: attempts,
-          attemptWindowStart: windowStart || now,
-        });
+        try {
+          window.sessionStorage.setItem("kgp_autoOtpAttempts", JSON.stringify(attempts));
+          window.sessionStorage.setItem("kgp_attemptWindowStart", JSON.stringify(windowStart || now));
+        } catch {}
 
         // 4b. Start Gmail Polling with 90s timeout (Auto Mode)
         startCountdown(90);
@@ -809,9 +840,11 @@
       purgeClientStorage();
       chrome.runtime.sendMessage({ type: "FORCE_RELOGIN" });
     } else if (isAltC) {
-      window.location.href = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp";
+      e.preventDefault();
+      chrome.runtime.sendMessage({ type: "LAUNCH_CDC", url: "https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp" });
     } else if (isAltZ) {
-      window.location.href = "https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp";
+      e.preventDefault();
+      chrome.runtime.sendMessage({ type: "LAUNCH_CDC", url: "https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp" });
     }
   });
 
@@ -961,13 +994,13 @@
     checkSystemError();
   }
 
-  // Monitor session on authenticated pages
+  // Monitor session on authenticated pages (wait 15s after initial navigation)
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
-      setTimeout(monitorLiveSession, 3000);
+      setTimeout(monitorLiveSession, 15000);
     });
   } else {
-    setTimeout(monitorLiveSession, 3000);
+    setTimeout(monitorLiveSession, 15000);
   }
 
   // Check session status when tab regains focus

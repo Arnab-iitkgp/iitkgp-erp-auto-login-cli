@@ -45,3 +45,6 @@ desktop.ini
 # Reference UI
 extension/reference UI/
 store_assets/
+
+# Dev logs
+DECISION_LOG.md

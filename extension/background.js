@@ -424,6 +424,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.type === "LAUNCH_CDC") {
+    launchCdcPage(request.url).then(() => sendResponse({ success: true }));
+    return true;
+  }
+
   if (request.type === "FORCE_RELOGIN") {
     const targetTabId = sender.tab ? sender.tab.id : null;
     forceReLogin(targetTabId).then(() => sendResponse({ success: true }));
@@ -440,21 +445,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  */
 async function isSessionAlive() {
   try {
-    let ssoToken = "";
-
-    // 1. Check live ssoToken cookie
+    // 1. Check if JSESSIONID cookie exists for ERP domain
+    let hasJSession = false;
     if (chrome.cookies) {
-      const cookie = await chrome.cookies.get({
-        url: "https://erp.iitkgp.ac.in",
+      const cookies = await chrome.cookies.getAll({ domain: "erp.iitkgp.ac.in" });
+      hasJSession = cookies.some((c) => c.name === "JSESSIONID" && c.value);
+    }
+
+    // 2. Retrieve ssoToken if available (from cookie or storage)
+    let ssoToken = "";
+    if (chrome.cookies) {
+      const ssoCookie = await chrome.cookies.get({
+        url: "https://erp.iitkgp.ac.in/IIT_ERP3/",
         name: "ssoToken",
       });
-      if (cookie && cookie.value) {
-        ssoToken = cookie.value;
-        chrome.storage.local.set({ latestSsoToken: ssoToken });
+      if (ssoCookie && ssoCookie.value) {
+        ssoToken = ssoCookie.value;
       }
     }
 
-    // 2. If cookie was not retrieved, fall back to stored token
     if (!ssoToken) {
       const stored = await chrome.storage.local.get(["latestSsoToken"]);
       if (stored && stored.latestSsoToken) {
@@ -462,13 +471,17 @@ async function isSessionAlive() {
       }
     }
 
-    // If no token exists anywhere, session is definitely dead
-    if (!ssoToken) {
+    // If neither JSESSIONID nor ssoToken exists, session is definitely dead
+    if (!hasJSession && !ssoToken) {
       return false;
     }
 
-    // 3. Exact CLI check: GET /IIT_ERP3/home.htm?ssoToken=...
-    const testUrl = `https://erp.iitkgp.ac.in/IIT_ERP3/home.htm?ssoToken=${encodeURIComponent(ssoToken)}`;
+    // 3. Probe ERP home page:
+    // If ssoToken is available, include it; otherwise let browser send live cookies
+    const testUrl = ssoToken
+      ? `https://erp.iitkgp.ac.in/IIT_ERP3/home.htm?ssoToken=${encodeURIComponent(ssoToken)}`
+      : `https://erp.iitkgp.ac.in/IIT_ERP3/home.htm`;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
@@ -504,7 +517,8 @@ async function isSessionAlive() {
 
     return true;
   } catch (e) {
-    return false;
+    // On temporary timeout or network glitch, do NOT falsely declare session dead
+    return true;
   }
 }
 
@@ -609,6 +623,73 @@ async function launchErpHome() {
   }
 }
 
+/**
+ * Ensures the ssoToken cookie exists on erp.iitkgp.ac.in.
+ * After browser restart, Edge may not restore session cookies (ssoToken has no Expires).
+ * The IIT_ERP3 JSESSIONID alone keeps the ERP session alive, but CDC pages
+ * (TrainingPlacementSSO) require ssoToken for SSO handshake to create their own session.
+ * This restores the ssoToken cookie from our saved copy in chrome.storage.local.
+ */
+async function ensureSsoTokenCookie() {
+  if (!chrome.cookies) return null;
+
+  // 1. Check if ssoToken cookie already exists
+  try {
+    const existing = await chrome.cookies.get({
+      url: "https://erp.iitkgp.ac.in/",
+      name: "ssoToken",
+    });
+    if (existing && existing.value) {
+      console.log("[ERP Background] ssoToken cookie already present");
+      return existing.value;
+    }
+  } catch (e) {}
+
+  // 2. Cookie is missing — restore from our saved copy
+  const stored = await chrome.storage.local.get(["latestSsoToken"]);
+  if (stored && stored.latestSsoToken) {
+    try {
+      await chrome.cookies.set({
+        url: "https://erp.iitkgp.ac.in/",
+        name: "ssoToken",
+        value: stored.latestSsoToken,
+        domain: "erp.iitkgp.ac.in",
+        path: "/",
+        secure: true,
+        sameSite: "lax",
+      });
+      console.log("[ERP Background] Restored ssoToken cookie from storage");
+      return stored.latestSsoToken;
+    } catch (e) {
+      console.warn("[ERP Background] Failed to restore ssoToken cookie:", e);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Smart CDC page launcher (Alt+C / Alt+Z):
+ * 1. Checks if ERP session is alive.
+ * 2. If alive, ensures ssoToken cookie is present (restores if Edge cleared it).
+ * 3. Navigates to the CDC page — server can now do the SSO handshake.
+ * 4. If session is dead, forces re-login.
+ */
+async function launchCdcPage(targetUrl) {
+  const alive = await isSessionAlive();
+  console.log(`[ERP Background] CDC launch sessionAlive: ${alive}, target: ${targetUrl}`);
+
+  if (!alive) {
+    await forceReLogin();
+    return;
+  }
+
+  // Session alive but ssoToken cookie may be missing after browser restart
+  await ensureSsoTokenCookie();
+
+  navigateOrOpenTab(targetUrl);
+}
+
 // Quick Launch Hotkey Command Handler (Alt+X / Alt+C / Alt+Z)
 chrome.commands.onCommand.addListener((command) => {
   chrome.storage.local.get(["hotkeyEnabled"], (data) => {
@@ -617,9 +698,9 @@ chrome.commands.onCommand.addListener((command) => {
     if (command === "quick_launch_erp") {
       launchErpHome();
     } else if (command === "quick_launch_cdc") {
-      navigateOrOpenTab("https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp");
+      launchCdcPage("https://erp.iitkgp.ac.in/TrainingPlacementSSO/Notice.jsp");
     } else if (command === "quick_launch_cdc_app") {
-      navigateOrOpenTab("https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp");
+      launchCdcPage("https://erp.iitkgp.ac.in/TrainingPlacementSSO/TPStudent.jsp");
     }
   });
 });
